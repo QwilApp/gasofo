@@ -4,6 +4,9 @@ Simple data types used as shared DTOs.
 from collections import namedtuple
 
 
+__author__ = 'shawn'
+
+
 # TODO: should these be owned by specific services/domains?
 # TODO: adapters to convert OrderSummary and OrderDetails DTO into chat-friendly text representation
 

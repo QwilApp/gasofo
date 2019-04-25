@@ -1,11 +1,18 @@
 import inspect
+import logging
 
 from octa.exceptions import DomainDefinitionError, PortDefinitionError, WiringError
 from octa.ports import (
     HasNeedsAndProvides,
-    ProviderMeta, auto_discover_needs, PortArray
+    ProviderMeta, auto_wire, PortArray
 )
 from octa.service import Service
+
+
+__author__ = 'shawn'
+
+
+logger = logging.getLogger(__name__)
 
 
 class DomainProviderMeta(ProviderMeta):
@@ -79,7 +86,7 @@ class DomainMetaclass(type):
                         '"{}" listed in {}.__provides__ is not provided by any of the services'.format(port_name, name))
 
         # wire up inter-service dependencies
-        wired = auto_discover_needs(consumers=services, producers=services, raise_if_needs_unsatisfied=False)
+        wired = auto_wire(consumers=services, producers=services, raise_if_needs_unsatisfied=False, assign_only=True)
 
         # any unsatisfied needs are exposed as needs of the Domain
         unwired_needs_ports = set(needs.keys()).difference(wired)
@@ -96,9 +103,6 @@ class DomainMetaclass(type):
             service = provides[port_name]
             meta.register_provider_service(port_name=port_name, service=service)
         state['meta'] = meta
-
-        # extend bases to include PortArray mixin.
-        bases = bases + (PortArray, )
 
         return type.__new__(mcs, name, bases, state)
 
@@ -133,13 +137,18 @@ class DomainMetaclass(type):
                         gathered[provide].__name__,
                         service_class.__name__,
                         provide
-
                     ))
                 gathered[provide] = service_class
         return gathered
 
 
-class Domain(HasNeedsAndProvides):
+class Domain(HasNeedsAndProvides, PortArray):
     __metaclass__ = DomainMetaclass
     __services__ = ()  # must be overridden in subclass to define list of services within this domain
     __provides__ = ()  # must be overridden to expose ports that this domain provides
+
+    def __init__(self):
+        pass
+
+        # init all services
+        # materialize connections

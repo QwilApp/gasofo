@@ -13,6 +13,9 @@ from octa.ports import (
 )
 
 
+__author__ = 'shawn'
+
+
 def provides(method):
     """Decorator which tags class methods so they can be detected as a provider of a Service."""
     method.__port_attributes__ = {}  # set up as dict so we can tag on extra stuff later

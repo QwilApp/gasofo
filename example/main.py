@@ -3,6 +3,9 @@ import site
 import os
 
 
+__author__ = 'shawn'
+
+
 logging.basicConfig(level=logging.DEBUG)
 
 

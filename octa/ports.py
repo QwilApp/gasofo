@@ -44,6 +44,7 @@ class PortArray(object):
         This would be used as a proxy to the Needs of a Service, but could also be used to implement intermediary
         Needs and Provides ports of a Domain that is hooked up with the encapsulated Services.
     """
+    DEFAULT_ADAPTER = bypass_adapter
 
     VALID_PORT_NAME_FORMAT = re.compile(r'[a-z][a-zA-Z0-9_]*')
 
@@ -51,8 +52,9 @@ class PortArray(object):
         'get_needs',
         'get_provides',
         'add_port',
+        'port_is_assigned',
         'assign_port_provider',
-        'connect_port',
+        'connect_assigned_port',
         'meta',
     ))
 
@@ -72,6 +74,11 @@ class PortArray(object):
         assert not hasattr(self, port_name), 'did we missed a reserved name?'
         setattr(self, port_name, UnadaptedPort(self, port_name))
 
+    def port_is_assigned(self, port_name):
+        if port_name not in self._ports:
+            raise PortDefinitionError('Port "{}" does not exist on {}'.format(port_name, self))
+        return port_name in self._providers
+
     def assign_port_provider(self, port_name, provider, provider_port_name):
         if port_name not in self._ports:
             raise PortDefinitionError('Port "{}" does not exist on {}'.format(port_name, self))
@@ -83,7 +90,7 @@ class PortArray(object):
             ))
         self._providers[port_name] = PortProvider(resource=provider, port_name=provider_port_name)
 
-    def connect_port(self, port_name, with_adapter=None, adapter_factory=bypass_adapter):
+    def connect_assigned_port(self, port_name, with_adapter=None):
         if port_name not in self._ports:
             raise PortDefinitionError('Port "{}" does not exist on {}'.format(port_name, self))
         if port_name in self._connected:
@@ -94,10 +101,8 @@ class PortArray(object):
         except KeyError:
             raise PortDefinitionError('Port "{}" on {} has not been assigned a provider'.format(port_name, self))
 
-        if with_adapter:
-            adapter = with_adapter
-        else:
-            adapter = adapter_factory(port_provider.resource, port_provider.port_name)
+        with_adapter = with_adapter or self.DEFAULT_ADAPTER
+        adapter = with_adapter(port_provider.resource, port_provider.port_name)
 
         if not callable(adapter):
             raise WiringError('Adapter for port "{}" on {} is not callable'.format(port_name, self))
@@ -150,7 +155,7 @@ class HasNeedsAndProvides(object):
         return cls.meta.get_provides()
 
 
-def auto_discover_needs(consumers, producers, raise_if_needs_unsatisfied=True):
+def auto_wire(consumers, producers, raise_if_needs_unsatisfied=True, assign_only=False):
     wired = []
     needers = {}
     for consumer in consumers:
@@ -179,20 +184,29 @@ def auto_discover_needs(consumers, producers, raise_if_needs_unsatisfied=True):
         for consumer in needers[port]:
             if provider is consumer:
                 raise WiringError('Attempt by {} to satisfy its own needs ("{}")'.format(provider, port))
-            port_provider = providers[port].meta.get_port_provider(port)
-            consumer.deps.assign_port_provider(
-                port_name=port,
-                provider=port_provider.resource,
-                provider_port_name=port_provider.port_name
-            )
-            wired.append(port)
 
             logger.debug('[AUTO-WIRING] {}.{} --> {}.{}'.format(
                 _get_resource_label(consumer), port,
                 _get_resource_label(provider), port,
             ))
+            connect_ports(consumer, port, provider, port, assign_only=assign_only)
+            wired.append(port)
 
     return wired
+
+
+def connect_ports(consumer, consumer_port, producer, producer_port, assign_only=False, with_adapter=None):
+    # NOTE: distinction between port with "assigned provider" and "connected" is only relevant in
+    #       the case of a "shadow" connection whereby then classes are wired up beforehand (e.g.
+    #       in the case of Domains that have internal services) but the actual objects have not
+    #       yet been instantiated and wired up.
+    port_provider = producer.meta.get_port_provider(port_name=producer_port)
+    consumer.deps.assign_port_provider(
+        port_name=consumer_port, provider=port_provider.resource,
+        provider_port_name=port_provider.port_name
+    )
+    if not assign_only:
+        consumer.deps.connect_assigned_port(consumer_port, with_adapter=with_adapter)
 
 
 def _get_resource_label(resource):

@@ -7,6 +7,9 @@ from octa import (
 )
 
 
+__author__ = 'shawn'
+
+
 class Clock(Service):
     """Shared clock."""
 

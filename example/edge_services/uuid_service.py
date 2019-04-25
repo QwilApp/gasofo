@@ -6,6 +6,9 @@ from octa import (
 )
 
 
+__author__ = 'shawn'
+
+
 class UuidGenerator(Service):
     """Simple service that emits UUIDs."""
     def __init__(self, prefix='ID', start=1, width=10):

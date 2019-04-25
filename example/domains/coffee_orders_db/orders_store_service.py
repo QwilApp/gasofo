@@ -13,6 +13,9 @@ from octa import (
 )
 
 
+__author__ = 'shawn'
+
+
 class OrdersStore(Service):
     """Dummy store that persists data in-memory rather than in DB."""
 

@@ -3,6 +3,8 @@ from example.domains.coffee_orders.order_history_service import OrderHistory
 from example.domains.coffee_orders.orders_service import Orders
 from octa import Domain
 
+
+__author__ = 'shawn'
 __all__ = ['CoffeeOrderDomain']
 
 

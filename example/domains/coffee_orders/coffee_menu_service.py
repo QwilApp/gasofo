@@ -1,6 +1,9 @@
 from octa import Service, provides
 
 
+__author__ = 'shawn'
+
+
 class CoffeeMenu(Service):
 
     def __init__(self):
