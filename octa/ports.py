@@ -186,8 +186,8 @@ def auto_wire(consumers, producers, raise_if_needs_unsatisfied=True, assign_only
                 raise WiringError('Attempt by {} to satisfy its own needs ("{}")'.format(provider, port))
 
             logger.debug('[AUTO-WIRING] {}.{} --> {}.{}'.format(
-                _get_resource_label(consumer), port,
-                _get_resource_label(provider), port,
+                get_resource_label(consumer), port,
+                get_resource_label(provider), port,
             ))
             connect_ports(consumer, port, provider, port, assign_only=assign_only)
             wired.append(port)
@@ -209,7 +209,7 @@ def connect_ports(consumer, consumer_port, producer, producer_port, assign_only=
         consumer.deps.connect_assigned_port(consumer_port, with_adapter=with_adapter)
 
 
-def _get_resource_label(resource):
+def get_resource_label(resource):
     """Used for resolving a label we could use to reference a resource type, whether it is a class or object."""
     try:
         return resource.__name__

@@ -26,3 +26,5 @@ if __name__ == '__main__':
     print CoffeeOrderDomain
     print "NEEDS:", CoffeeOrderDomain.get_needs()
     print "PROVIDES", CoffeeOrderDomain.get_provides()
+
+    print CoffeeOrderDomain().show_orders()

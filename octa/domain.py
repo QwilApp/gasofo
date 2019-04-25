@@ -1,13 +1,19 @@
 import inspect
 import logging
-
-from octa.exceptions import DomainDefinitionError, PortDefinitionError, WiringError
+import types
+import functools
+from octa.exceptions import (
+    DomainDefinitionError,
+    WiringError
+)
 from octa.ports import (
     HasNeedsAndProvides,
-    ProviderMeta, auto_wire, PortArray
+    PortArray,
+    PortProvider,
+    ProviderMeta,
+    auto_wire,
 )
 from octa.service import Service
-
 
 __author__ = 'shawn'
 
@@ -57,11 +63,34 @@ class DomainProviderMeta(ProviderMeta):
         raise WiringError('Port "{}" does not exist on {}'.format(port_name, self._parent_class_name))
 
 
+class DomainDepsProviderMeta(ProviderMeta):
+    def __init__(self, parent):
+        self.parent = parent
+
+    def get_provides(self):
+        return self.parent.get_needs()
+
+    def get_port_provider(self, port_name):
+        return PortProvider(resource=self.parent, port_name=port_name)
+
+    def get_provider_func(self, port_name):
+        return getattr(self.parent, port_name)
+
+    def get_port_flag(self, port_name, flag_name):
+        return None
+
+    def get_port_flags(self, port_name):
+        return {}
+
+
 class DomainDeps(PortArray):
+    # Since this serves as a proxy for service needs and external providers, it will essentially
+    # have needs as well as provides
     def __init__(self, needs):
         super(DomainDeps, self).__init__()
         for port in needs:
             self.add_port(port)
+        self.meta = DomainDepsProviderMeta(parent=self)
 
 
 class DomainMetaclass(type):
@@ -142,13 +171,53 @@ class DomainMetaclass(type):
         return gathered
 
 
+class VirtualToConcreteConnectionAdapter(object):
+    def __init__(self, class_to_instance_mapper):
+        self._mapper = class_to_instance_mapper
+
+    def __call__(self, provider, port_name):
+        if inspect.isclass(provider):
+            try:
+                provider_object = self._mapper[provider]
+            except KeyError:
+                raise WiringError('Unmapped provider class - {}'.format(provider))
+        else:
+            provider_object = provider
+        return provider_object.meta.get_provider_func(port_name=port_name)
+
+
 class Domain(HasNeedsAndProvides, PortArray):
     __metaclass__ = DomainMetaclass
     __services__ = ()  # must be overridden in subclass to define list of services within this domain
     __provides__ = ()  # must be overridden to expose ports that this domain provides
 
     def __init__(self):
-        pass
+        super(Domain, self).__init__()
+        self._service_map = self._instantiate_and_map_services()
+        self._materialise_connections(self._service_map)
 
-        # init all services
-        # materialize connections
+    def _instantiate_and_map_services(self):
+        mapper = {service_class: service_class() for service_class in self.__services__}
+        return mapper
+
+    def _materialise_connections(self, service_map):
+        mapper = {self.__class__: self}  # need to include Domain since some Services exposes needs to domain level
+        mapper.update(service_map)
+        virtual_to_concrete = VirtualToConcreteConnectionAdapter(mapper)
+
+        for service in service_map.itervalues():
+            for port in service.get_needs():
+                service.deps.connect_assigned_port(port_name=port, with_adapter=virtual_to_concrete)
+
+        for port in self.get_provides():
+            self._ports.add(port)
+            provider = self.meta.get_port_provider(port)
+            target_object = mapper[provider.resource]
+            target_func = getattr(target_object, provider.port_name)
+
+            @functools.wraps(target_func)
+            def unbound_method(_, *args, **kwargs):
+                return target_func(*args, **kwargs)
+
+            method = types.MethodType(unbound_method, self)
+            setattr(self, port, method)
