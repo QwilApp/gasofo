@@ -24,3 +24,7 @@ class UnknownPort(GasofoError):
 
 class InvalidPortName(GasofoError):
     """Raised when an invalid port name is used."""
+
+
+class ServiceDefinitionError(GasofoError):
+    """Raised when a Service definition is invalid."""

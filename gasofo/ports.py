@@ -13,12 +13,12 @@ VALID_PORT_NAME_FORMAT = re.compile(r'[a-z][a-zA-Z0-9_]*$')
 RESERVED_PORT_NAMES = frozenset((
     'add_port',
     'get_ports',
+    'replicate',
     'disconnect_port',
     'connect_port',
     'get_needs',
     'get_provides',
-    'meta',
-    'deps',
+    'assert_valid_port_name',
 ))
 
 
@@ -27,11 +27,7 @@ class PortArray(object):
         self._ports = set()
 
     def add_port(self, port_name):
-        if not VALID_PORT_NAME_FORMAT.match(port_name):
-            raise InvalidPortName('"{}" does not have required format for port names'.format(port_name))
-
-        if port_name in RESERVED_PORT_NAMES:
-            raise InvalidPortName('"{}" is a reserved word and cannot be used as port name'.format(port_name))
+        self.assert_valid_port_name(port_name)
         self._ports.add(port_name)
         raise_not_connected = self._get_placeholder_func_for_disconnected_port(port_name=port_name)
         setattr(self, port_name, raise_not_connected)
@@ -57,11 +53,19 @@ class PortArray(object):
         return partial(not_yet_connected, port_name)
 
     @classmethod
-    def _replicate(cls, another_port_array):
+    def replicate(cls, another_port_array):
         new_array = cls()
         for port in another_port_array.get_ports():
             new_array.add_port(port)
         return new_array
+
+    @staticmethod
+    def assert_valid_port_name(port_name):
+        if not VALID_PORT_NAME_FORMAT.match(port_name):
+            raise InvalidPortName('"{}" does not have required format for port names'.format(port_name))
+
+        if port_name in RESERVED_PORT_NAMES:
+            raise InvalidPortName('"{}" is a reserved word and cannot be used as port name'.format(port_name))
 
 
 def not_yet_connected(port_name, *_, **__):

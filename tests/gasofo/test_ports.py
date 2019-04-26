@@ -6,7 +6,10 @@ from gasofo.exceptions import (
     UnknownPort,
     WiringError
 )
-from gasofo.ports import PortArray, ShadowPortArray
+from gasofo.ports import (
+    PortArray,
+    ShadowPortArray
+)
 
 
 class PortArrayTests(TestCase):
@@ -117,8 +120,6 @@ class PortArrayTests(TestCase):
         self.assert_raises_when_port_name_is_reserved_word('connect_port')
         self.assert_raises_when_port_name_is_reserved_word('get_needs')
         self.assert_raises_when_port_name_is_reserved_word('get_provides')
-        self.assert_raises_when_port_name_is_reserved_word('meta')
-        self.assert_raises_when_port_name_is_reserved_word('deps')
 
         # also pull in all attrs in case we miss something
         port_array_attrs = [a for a in dir(self.ports) if not a.startswith('_')]
@@ -154,7 +155,7 @@ class PortArrayTests(TestCase):
         self.ports.add_port('world')
         self.ports.connect_port('hello', lambda: None)
 
-        new_ports = PortArray._replicate(self.ports)
+        new_ports = PortArray.replicate(self.ports)
         self.assertIsNot(new_ports, self.ports)
         self.assertItemsEqual(['hello', 'world'], new_ports.get_ports())
 
