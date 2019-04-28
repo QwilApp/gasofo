@@ -8,6 +8,10 @@ from gasofo.exceptions import (
     WiringError
 )
 
+
+__author__ = 'shawn'
+
+
 VALID_PORT_NAME_FORMAT = re.compile(r'[a-z][a-zA-Z0-9_]*$')
 
 RESERVED_PORT_NAMES = frozenset((

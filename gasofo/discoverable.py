@@ -7,6 +7,9 @@ from gasofo.exceptions import (
 )
 
 
+__author__ = 'shawn'
+
+
 class IProvide(object):
     def get_provides(self):
         raise NotImplemented('Implement me to return list of Provides port names')

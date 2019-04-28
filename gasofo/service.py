@@ -1,3 +1,5 @@
+import inspect
+
 from gasofo.discoverable import (
     INeed,
     IProvide
@@ -8,7 +10,8 @@ from gasofo.exceptions import (
     UnknownPort
 )
 from gasofo.ports import PortArray
-import inspect
+
+__author__ = 'shawn'
 
 
 def provides(method):
@@ -41,11 +44,15 @@ class Needs(PortArray):
 
     def __init__(self, needs):
         super(Needs, self).__init__()
+
+        if isinstance(needs, basestring):
+            needs = [needs]
+
         for port in needs:
             self.add_port(port)
 
 
-class ServiceClassMeta(object):
+class ServiceProviderMetadata(object):
     """ Metadata for providers stored on Service class.
 
         Provider funcs are referenced only by method names since actual bound method does not exist yet.
@@ -90,7 +97,7 @@ class ServiceMetaclass(type):
         mcs.validate_overridden_attributes(attrs=state, subclass_name=name)
 
         # walk attributes and register the ones that have been tagged by @provides
-        meta = ServiceClassMeta()
+        meta = ServiceProviderMetadata()
         for attr_name, member in state.iteritems():
             if hasattr(member, '__port_attributes__') and callable(member):  # tagged
                 port_name = member.__port_attributes__.get('with_name', attr_name)
