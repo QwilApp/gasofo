@@ -3,6 +3,7 @@ from collections import namedtuple
 from gasofo.exceptions import (
     DisconnectedPort,
     DuplicateProviders,
+    IncompatibleProvider,
     SelfReferencingMadness
 )
 
@@ -10,16 +11,16 @@ __author__ = 'shawn'
 
 
 class IProvide(object):
-    def get_provides(self):
+    def get_provides(self):  # pragma: no cover
         raise NotImplementedError('Implement me to return list of Provides port names')
 
-    def get_provider_func(self, port_name):
+    def get_provider_func(self, port_name):  # pragma: no cover
         raise NotImplementedError('Implement me to return a callable given a port name')
 
-    def get_provider_flag(self, port_name, flag_name):
+    def get_provider_flag(self, port_name, flag_name):  # pragma: no cover
         raise NotImplementedError('Implement me to return a flag value or None if unset')
 
-    def get_provider_flags(self, port_name):
+    def get_provider_flags(self, port_name):  # pragma: no cover
         raise NotImplementedError('Implement me to return a dict of flags')
 
 
@@ -27,20 +28,21 @@ class INeed(object):
     def __init__(self):
         self._providers = {}
 
-    def get_needs(self):
+    def get_needs(self):  # pragma: no cover
         raise NotImplementedError('Implement me to return a list of Needs port names')
 
-    def _satisfy_need(self, port_name, func):
+    def _satisfy_need(self, port_name, func):  # pragma: no cover
         raise NotImplementedError('Implement me to implement logic for satisfying internal Need')
 
-    def _is_compatible_provider(self, port_name, provider):
+    def _is_compatible_provider(self, port_name, provider):  # pragma: no cover
         raise NotImplementedError('Implement me to check if provider is compatible with given port')
 
     def set_provider(self, port_name, provider):
         if port_name in self._providers:
             raise DuplicateProviders('There is already a provider for "{}"'.format(port_name))
 
-        assert isinstance(provider, IProvide) and self._is_compatible_provider(port_name, provider)
+        if not self._is_compatible_provider(port_name, provider):
+            raise IncompatibleProvider('{} is not compatible with port "{}"'.format(provider, port_name))
         self._satisfy_need(port_name, provider.get_provider_func(port_name))
         self._providers[port_name] = provider
 
@@ -63,16 +65,16 @@ class AutoDiscoverConnections(object):
         self.assert_no_components_satisfying_themselves(self._needs, self._provides)
 
     def get_needs(self):
-        return self._needs.keys()
+        return sorted(self._needs.iterkeys())
 
     def get_provides(self):
-        return self._provides.keys()
+        return sorted(self._provides.iterkeys())
 
     def unsatisfied_needs(self):
         unsatisfied = set(self._needs).difference(self._provides)
-        return list(unsatisfied)
+        return sorted(unsatisfied)
 
-    def get_connections(self):
+    def connections(self):
         for port in self._needs:
             provider = self._provides.get(port, None)
             if not provider:

@@ -8,7 +8,12 @@ from gasofo import (
 )
 from gasofo.exceptions import (
     DisconnectedPort,
-    UnknownPort, DuplicateProviders, DuplicatePortDefinition, InvalidPortName, UnusedPort, ServiceDefinitionError
+    DuplicatePortDefinition,
+    DuplicateProviders,
+    InvalidPortName,
+    ServiceDefinitionError,
+    UnknownPort,
+    UnusedPort
 )
 
 
@@ -380,3 +385,5 @@ class ServiceNeedsTest(TestCase):
         self.assertEqual('Milk', consumer.eat())  # connected
         with self.assertRaisesRegexp(DisconnectedPort, 'Port "food" has not been connected'):
             another_consumer.eat()  # not connected
+
+        self.assertIs(producer, consumer.get_provider(port_name='food'))

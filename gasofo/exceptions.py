@@ -40,3 +40,7 @@ class ServiceDefinitionError(GasofoError):
 
 class YouCannotDoThat(GasofoError):
     """Raised when an invalid action is requested or executed."""
+
+
+class IncompatibleProvider(GasofoError):
+    """Raised when connecting an incompatible provider to a port."""
