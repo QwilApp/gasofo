@@ -1,23 +1,10 @@
-from octa import Service, provides
+from gasofo import Service, provides
 
 
 __author__ = 'shawn'
 
 
 class CoffeeMenu(Service):
-
-    def __init__(self):
-        super(CoffeeMenu, self).__init__()
-
-        self._items = frozenset([  # for lookup
-            "Black Americano",
-            "White Americano",
-            "Cappucino",
-            "Flat White",
-            "English Breakfast Tea",
-            "Hot Chocolate",
-        ])
-        self._sorted_items = sorted(self._items)
 
     @provides
     def is_valid_menu_item(self, item_name):
@@ -29,7 +16,7 @@ class CoffeeMenu(Service):
         Returns:
             bool
         """
-        return item_name in self._items
+        return item_name in self._items()
 
     @provides
     def get_menu_items(self):
@@ -38,4 +25,15 @@ class CoffeeMenu(Service):
         Returns:
             list
         """
-        return list(self._sorted_items)  # return a copy
+        return sorted(self._items())  # return a copy
+
+    @staticmethod
+    def _items():
+        return frozenset([  # for lookup
+            "Black Americano",
+            "White Americano",
+            "Cappucino",
+            "Flat White",
+            "English Breakfast Tea",
+            "Hot Chocolate",
+        ])

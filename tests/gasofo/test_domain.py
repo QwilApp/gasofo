@@ -10,6 +10,10 @@
 * shadow deps connected? Even for shared deps?
 
 
+# connection domain to service
+# connecting service to domain
+# connecting domain to domain
+
 * __docs__
 * args, kwargs passed in?
 

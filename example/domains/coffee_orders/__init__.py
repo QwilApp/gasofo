@@ -1,7 +1,7 @@
 from example.domains.coffee_orders.coffee_menu_service import CoffeeMenu
 from example.domains.coffee_orders.order_history_service import OrderHistory
 from example.domains.coffee_orders.orders_service import Orders
-from octa import Domain
+from gasofo import Domain
 
 
 __author__ = 'shawn'

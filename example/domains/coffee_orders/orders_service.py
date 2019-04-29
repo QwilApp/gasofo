@@ -1,10 +1,9 @@
 from example.shared.exceptions import InvalidAction
-from octa import (
-    Service,
+from gasofo import (
     Needs,
+    Service,
     provides
 )
-
 
 __author__ = 'shawn'
 
@@ -41,7 +40,7 @@ class Orders(Service):
         elif active_offer:
             raise InvalidAction('There is already an offer to by coffee by ' + active_offer.buyer)
 
-        return self.db_create_order(room=room, buyer=requester)
+        return self.deps.db_create_order(room=room, buyer=requester)
 
     @provides
     def close_orders(self, requester, room):

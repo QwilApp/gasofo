@@ -1,10 +1,9 @@
 import itertools
 
-from octa import (
+from gasofo import (
     Service,
     provides
 )
-
 
 __author__ = 'shawn'
 

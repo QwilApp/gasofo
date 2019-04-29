@@ -1,10 +1,9 @@
 from example.shared.exceptions import InvalidAction
-from octa import (
-    Service,
+from gasofo import (
     Needs,
-    provides,
+    Service,
+    provides
 )
-
 
 __author__ = 'shawn'
 

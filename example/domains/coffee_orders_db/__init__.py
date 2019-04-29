@@ -1,8 +1,6 @@
-from example.domains.coffee_orders_db.orders_store_service import OrdersStore
 from example.domains.coffee_orders_db.order_history_store_service import OrderHistoryStore
-
-from octa import Domain
-
+from example.domains.coffee_orders_db.orders_store_service import OrdersStore
+from gasofo import Domain
 
 __author__ = 'shawn'
 __all__ = ['CoffeeOrderDBInterface']

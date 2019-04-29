@@ -1,17 +1,16 @@
 from copy import deepcopy
 
 from example.shared.datatypes import (
-    OrderSummary,
+    OrderDetails,
     OrderItem,
-    OrderDetails
+    OrderSummary
 )
 from example.shared.exceptions import InvalidAction
-from octa import (
-    Service,
+from gasofo import (
     Needs,
+    Service,
     provides_with
 )
-
 
 __author__ = 'shawn'
 

@@ -1,10 +1,9 @@
 from collections import defaultdict
 
-from octa import (
+from gasofo import (
     Service,
     provides
 )
-
 
 __author__ = 'shawn'
 
