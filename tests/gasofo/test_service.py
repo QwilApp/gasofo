@@ -8,7 +8,7 @@ from gasofo import (
 )
 from gasofo.exceptions import (
     DisconnectedPort,
-    UnknownPort, DuplicateProviders,
+    UnknownPort, DuplicateProviders, DuplicatePortDefinition, InvalidPortName, UnusedPort, ServiceDefinitionError
 )
 
 
@@ -33,7 +33,7 @@ class ServiceDefinitionTest(TestCase):
 
             @provides
             def provider_a(self):
-                return 'A'
+                return self.deps.stuff()
 
         self.assertEqual(['stuff'], MyService.get_needs())
         self.assertEqual(['provider_a'], MyService.get_provides())
@@ -45,6 +45,10 @@ class ServiceDefinitionTest(TestCase):
     def test_needs_defined_with_str_rather_than_list_is_autocorrected(self):
         class MyService(Service):
             deps = Needs('stuff')
+
+            @provides
+            def provider_a(self):
+                return self.deps.stuff()
 
         self.assertEqual(['stuff'], MyService.get_needs())
 
@@ -61,11 +65,89 @@ class ServiceDefinitionTest(TestCase):
                 def another_provider(self):
                     return 'X'
 
-    # TODO: duplicate needs
-    # TODO: invalid port name
-    # TODO: port name matching reserved words
-    # TODO: __init__ with args/kwargs
-    # TODO: assert_all_deps_used?
+    def test_service_definition_with_duplicate_needs_raises_DuplicatePortDefinition(self):
+
+        with self.assertRaisesRegexp(DuplicatePortDefinition, '"stuff" port is duplicated'):
+            class MyService(Service):
+                deps = Needs(['stuff', 'more_stuff', 'stuff'])
+
+    def test_service_with_unused_deps_raises_ServiceDefinitionError(self):
+
+        with self.assertRaisesRegexp(UnusedPort, 'MyService has unused Needs - fluff'):
+            class MyService(Service):
+                deps = Needs(['stuff', 'fluff'])
+
+                @provides
+                def provider_a(self):
+                    return self.deps.stuff()
+
+    def test_service_deps_usage_analysis_also_takes_into_account_internal_methods(self):
+
+        class MyService(Service):  # Should not raise
+            deps = Needs(['stuff', 'fluff'])
+
+            @provides
+            def provider_a(self):
+                return self.deps.stuff() + self._fluff()
+
+            def _fluff(self):
+                return self.deps.fluff()
+
+    def test_service_with_multiple_unused_deps(self):
+
+        with self.assertRaisesRegexp(UnusedPort, 'MyService has unused Needs - acorn, fluff'):
+            class MyService(Service):
+                deps = Needs(['stuff', 'fluff', 'acorn'])
+
+                @provides
+                def provider_a(self):
+                    return self.deps.stuff()
+
+    def test_invalid_provides_port_name_raises_InvalidPortName(self):
+
+        with self.assertRaisesRegexp(InvalidPortName, '"9_bad_port_name" does not have required format for port names'):
+            class MyService(Service):
+                @provides_with('9_bad_port_name')
+                def provider(self):
+                    return False
+
+    def test_invalid_needs_port_name_raises_InvalidPortName(self):
+
+        with self.assertRaisesRegexp(InvalidPortName, '"9_bad_port_name" does not have required format for port names'):
+            class MyService(Service):
+                deps = Needs(['9_bad_port_name'])
+
+    def test_port_name_matching_reserved_names_raises_InvalidPortName(self):
+
+        with self.assertRaisesRegexp(InvalidPortName, '"get_needs" is a reserved word and cannot be used as port name'):
+            class MyService(Service):
+                deps = Needs(['get_needs'])
+
+    def test_reference_to_undeclared_deps_raises_UnknownPort(self):
+
+        with self.assertRaisesRegexp(UnknownPort, 'MyService.provider_a references undeclared Needs - not_a_port'):
+            class MyService(Service):
+
+                @provides
+                def provider_a(self):
+                    return self.deps.not_a_port()
+
+    def test_multiple_references_to_undeclared_deps(self):
+
+        with self.assertRaisesRegexp(UnknownPort, 'MyService.provider_a references undeclared Needs - abc, not_a_port'):
+            class MyService(Service):
+
+                @provides
+                def provider_a(self):
+                    return self.deps.not_a_port(), self.deps.not_a_port(), self.deps.abc()
+
+    def test_constructor_not_allowed_for_services(self):
+
+        with self.assertRaisesRegexp(ServiceDefinitionError, 'To emphasize statelessness, MyService should not define __init__'):
+            class MyService(Service):
+                def __init__(self):
+                    super(MyService, self).__init__()
+
 
 class ServiceProvidesTest(TestCase):
 
@@ -222,6 +304,10 @@ class ServiceNeedsTest(TestCase):
         class MyService(Service):
             deps = Needs(['health', 'time', 'money'])
 
+            @provides
+            def happiness(self):
+                return self.deps.health(), self.deps.time(), self.deps.money()
+
         self.assertItemsEqual(['health', 'time', 'money'], MyService.get_needs())
         self.assertItemsEqual(['health', 'time', 'money'], MyService().get_needs())
 
@@ -282,7 +368,3 @@ class ServiceNeedsTest(TestCase):
         self.assertEqual('Milk', consumer.eat())  # connected
         with self.assertRaisesRegexp(DisconnectedPort, 'Port "food" has not been connected'):
             another_consumer.eat()  # not connected
-
-
-
-

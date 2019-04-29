@@ -1,15 +1,19 @@
 import inspect
+import re
+import textwrap
 
 from gasofo.discoverable import (
     INeed,
     IProvide
 )
 from gasofo.exceptions import (
+    DuplicatePortDefinition,
     DuplicateProviders,
     ServiceDefinitionError,
-    UnknownPort
+    UnknownPort,
+    UnusedPort
 )
-from gasofo.ports import PortArray
+from gasofo.ports import PortArray, RESERVED_PORT_NAMES
 
 __author__ = 'shawn'
 
@@ -40,7 +44,10 @@ def provides_with(name=None, **kwargs):
 
 
 class Needs(PortArray):
-    """Used to defined the Needs ports of a Service."""
+    """Used to defined the Needs ports of a Service.
+
+        @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
+    """
 
     def __init__(self, needs):
         super(Needs, self).__init__()
@@ -49,7 +56,10 @@ class Needs(PortArray):
             needs = [needs]
 
         for port in needs:
-            self.add_port(port)
+            try:
+                self.add_port(port)
+            except DuplicatePortDefinition:
+                raise DuplicatePortDefinition('"{}" port is duplicated'.format(port))
 
 
 class ServiceProviderMetadata(object):
@@ -94,35 +104,65 @@ class ServiceMetaclass(type):
     """ Metaclass that makes classes aware of @provides and ensures .deps and .meta is specified correctly."""
 
     def __new__(mcs, name, bases, state):
-        mcs.validate_overridden_attributes(attrs=state, subclass_name=name)
+        mcs.validate_overridden_attributes(attrs=state, class_name=name)
 
         # walk attributes and register the ones that have been tagged by @provides
         meta = ServiceProviderMetadata()
         for attr_name, member in state.iteritems():
             if hasattr(member, '__port_attributes__') and callable(member):  # tagged
+
                 port_name = member.__port_attributes__.get('with_name', attr_name)
                 PortArray.assert_valid_port_name(port_name)
                 meta.register_provider(port_name=port_name, method_name=attr_name, flags=member.__port_attributes__)
+
+        mcs.validate_deps_declaration_and_usage(class_state=state, class_name=name)
 
         state['meta'] = meta
         return type.__new__(mcs, name, bases, state)
 
     @classmethod
-    def validate_overridden_attributes(mcs, attrs, subclass_name):
+    def validate_overridden_attributes(mcs, attrs, class_name):
         if 'meta' in attrs:
             raise ServiceDefinitionError('"meta" is a reserved attributes and should not be overridden')
 
         if 'deps' in attrs and not isinstance(attrs['deps'], Needs):
             raise ServiceDefinitionError('{}.deps must be an instance of {}.{}'.format(
-                subclass_name,
+                class_name,
                 Needs.__module__,
                 Needs.__name__,
             ))
 
-        if '__init__' in attrs:
-            arg_spec = inspect.getargspec(attrs['__init__'])
-            if len(arg_spec.args) != 1 or arg_spec.varargs or arg_spec.keywords:
-                raise ServiceDefinitionError('Service constructor should not expect additional args/kwargs')
+        if '__init__' in attrs and class_name != 'Service':
+            raise ServiceDefinitionError('To emphasize statelessness, {} should not define __init__'.format(class_name))
+
+    @classmethod
+    def validate_deps_declaration_and_usage(mcs, class_state, class_name):
+        deps = class_state.get('deps', None)
+        needs_ports_defined = frozenset(deps.get_ports() if deps else ())
+        all_deps_used = set()
+
+        for attr_name, member in class_state.iteritems():
+            if callable(member):
+                deps_used = parse_deps_used(member)
+                invalid_ports = deps_used.difference(needs_ports_defined).difference(RESERVED_PORT_NAMES)
+                all_deps_used.update(deps_used)
+                if invalid_ports:
+                    raise UnknownPort('{}.{} references undeclared Needs - {}'.format(
+                        class_name,
+                        attr_name,
+                        ', '.join(sorted(deps_used))
+                    ))
+
+        unused_needs = needs_ports_defined.difference(all_deps_used)
+        if unused_needs:
+            raise UnusedPort('{} has unused Needs - {}'.format(class_name, ', '.join(sorted(unused_needs))))
+
+
+def parse_deps_used(method):
+    # Start simple for now. Match using regex instead of walking parsed ast tree.
+    method_source = textwrap.dedent(inspect.getsource(method))
+    deps_used = re.findall(r'self\.deps\.(.+?)\(', method_source)
+    return frozenset(deps_used)
 
 
 class Service(INeed, IProvide):

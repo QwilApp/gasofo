@@ -5,7 +5,7 @@ from gasofo.exceptions import (
     DisconnectedPort,
     InvalidPortName,
     UnknownPort,
-    WiringError
+    WiringError, DuplicatePortDefinition
 )
 
 
@@ -32,6 +32,9 @@ class PortArray(object):
 
     def add_port(self, port_name):
         self.assert_valid_port_name(port_name)
+        if port_name in self._ports:
+            raise DuplicatePortDefinition('Port "{}" already defined'.format(port_name))
+
         self._ports.add(port_name)
         raise_not_connected = self._get_placeholder_func_for_disconnected_port(port_name=port_name)
         setattr(self, port_name, raise_not_connected)

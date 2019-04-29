@@ -6,6 +6,10 @@ class DuplicateProviders(GasofoError):
     """Raised when there are multiple providers of the same port."""
 
 
+class DuplicatePortDefinition(GasofoError):
+    """Raised when attempting to create a port that already exists."""
+
+
 class SelfReferencingMadness(GasofoError):
     """Raised when a component has provides ports that satisfy its own needs."""
 
@@ -22,6 +26,10 @@ class UnknownPort(GasofoError):
     """Raised when referencing a port that does not exist."""
 
 
+class UnusedPort(GasofoError):
+    """Raised when service declares deps that are unused."""
+
+
 class InvalidPortName(GasofoError):
     """Raised when an invalid port name is used."""
 
@@ -32,4 +40,3 @@ class ServiceDefinitionError(GasofoError):
 
 class YouCannotDoThat(GasofoError):
     """Raised when an invalid action is requested or executed."""
-

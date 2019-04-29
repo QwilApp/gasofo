@@ -6,22 +6,21 @@ from gasofo.exceptions import (
     SelfReferencingMadness
 )
 
-
 __author__ = 'shawn'
 
 
 class IProvide(object):
     def get_provides(self):
-        raise NotImplemented('Implement me to return list of Provides port names')
+        raise NotImplementedError('Implement me to return list of Provides port names')
 
     def get_provider_func(self, port_name):
-        raise NotImplemented('Implement me to return a callable given a port name')
+        raise NotImplementedError('Implement me to return a callable given a port name')
 
     def get_provider_flag(self, port_name, flag_name):
-        raise NotImplemented('Implement me to return a flag value or None if unset')
+        raise NotImplementedError('Implement me to return a flag value or None if unset')
 
     def get_provider_flags(self, port_name):
-        raise NotImplemented('Implement me to return a dict of flags')
+        raise NotImplementedError('Implement me to return a dict of flags')
 
 
 class INeed(object):
@@ -29,13 +28,13 @@ class INeed(object):
         self._providers = {}
 
     def get_needs(self):
-        raise NotImplemented('Implement me to return a list of Needs port names')
+        raise NotImplementedError('Implement me to return a list of Needs port names')
 
     def _satisfy_need(self, port_name, func):
-        raise NotImplemented('Implement me to implement logic for satisfying internal Need')
+        raise NotImplementedError('Implement me to implement logic for satisfying internal Need')
 
     def _is_compatible_provider(self, port_name, provider):
-        raise NotImplemented('Implement me to check if provider is compatible with given port')
+        raise NotImplementedError('Implement me to check if provider is compatible with given port')
 
     def set_provider(self, port_name, provider):
         if port_name in self._providers:
@@ -108,8 +107,3 @@ class AutoDiscoverConnections(object):
             provider = provides.get(port, None)
             if provider and provider in needy_component:
                 raise SelfReferencingMadness('{} both needs and provides "{}". Madness.'.format(provider, port))
-
-
-
-
-

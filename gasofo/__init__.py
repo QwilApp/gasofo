@@ -4,3 +4,6 @@ from gasofo.service import (
     provides,
     provides_with
 )
+
+
+__all__ = ['Needs', 'Service', 'provides_with', 'provides']
