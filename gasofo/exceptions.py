@@ -38,6 +38,10 @@ class ServiceDefinitionError(GasofoError):
     """Raised when a Service definition is invalid."""
 
 
+class DomainDefinitionError(GasofoError):
+    """Raised when a Service definition is invalid."""
+
+
 class YouCannotDoThat(GasofoError):
     """Raised when an invalid action is requested or executed."""
 

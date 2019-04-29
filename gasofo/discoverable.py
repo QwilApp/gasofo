@@ -4,7 +4,7 @@ from gasofo.exceptions import (
     DisconnectedPort,
     DuplicateProviders,
     IncompatibleProvider,
-    SelfReferencingMadness
+    SelfReferencingMadness, UnknownPort
 )
 
 __author__ = 'shawn'
@@ -74,6 +74,16 @@ class AutoDiscoverConnections(object):
         unsatisfied = set(self._needs).difference(self._provides)
         return sorted(unsatisfied)
 
+    def satisfied_needs(self):
+        satisfied = set(self._needs).intersection(self._provides)
+        return sorted(satisfied)
+
+    def get_provider(self, port_name):
+        try:
+            return self._provides[port_name]
+        except KeyError:
+            raise UnknownPort('"{}" is not a valid port'.format(port_name))
+
     def connections(self):
         for port in self._needs:
             provider = self._provides.get(port, None)
@@ -109,3 +119,8 @@ class AutoDiscoverConnections(object):
             provider = provides.get(port, None)
             if provider and provider in needy_component:
                 raise SelfReferencingMadness('{} both needs and provides "{}". Madness.'.format(provider, port))
+
+
+def wire_up_discovered_connections(discovered):
+    for port_name, consumer, provider in discovered.connections():
+        consumer.set_provider(port_name=port_name, provider=provider)

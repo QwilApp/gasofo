@@ -62,30 +62,13 @@ class Needs(PortArray):
                 raise DuplicatePortDefinition('"{}" port is duplicated'.format(port))
 
 
-class ServiceProviderMetadata(object):
-    """ Metadata for providers stored on Service class.
-
-        Provider funcs are referenced only by method names since actual bound method does not exist yet.
-    """
+class ProviderMetadata(object):
     def __init__(self):
         self._providers = {}
         self._flags = {}
 
-    def register_provider(self, port_name, method_name, flags):
-        if port_name in self._providers:
-            raise DuplicateProviders('Duplicate providers for "{}"'.format(port_name))
-
-        self._providers[port_name] = method_name
-        self._flags[port_name] = flags or {}
-
     def get_provides(self):
         return self._providers.keys()
-
-    def get_provider_method_name(self, port_name):
-        try:
-            return self._providers[port_name]
-        except KeyError:
-            raise UnknownPort('"{}" is not a valid port'.format(port_name))
 
     def get_provider_flag(self, port_name, flag_name):
         try:
@@ -96,6 +79,32 @@ class ServiceProviderMetadata(object):
     def get_provider_flags(self, port_name):
         try:
             return self._flags[port_name].copy()
+        except KeyError:
+            raise UnknownPort('"{}" is not a valid port'.format(port_name))
+
+    def register_provider(self, port_name, provider_ref, flags):
+        if port_name in self._providers:
+            raise DuplicateProviders('Duplicate providers for "{}"'.format(port_name))
+
+        self._providers[port_name] = provider_ref
+        self._flags[port_name] = flags or {}
+
+
+class ServiceProviderMetadata(ProviderMetadata):
+    """ Metadata for providers stored on Service class.
+
+        Provider funcs are referenced only by method names since actual bound method does not exist yet.
+    """
+    def register_provider(self, port_name, method_name, flags):
+        super(ServiceProviderMetadata, self).register_provider(
+            port_name=port_name,
+            provider_ref=method_name,
+            flags=flags,
+        )
+
+    def get_provider_method_name(self, port_name):
+        try:
+            return self._providers[port_name]
         except KeyError:
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
 
