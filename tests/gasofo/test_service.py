@@ -296,6 +296,18 @@ class ServiceProvidesTest(TestCase):
         with self.assertRaisesRegexp(UnknownPort, '"not_a_valid_port" is not a valid port'):
             MyService().get_provider_flag('not_a_valid_port', 'some_flag')
 
+    def test_setting_deps_to_anything_other_than_Needs_raises_ServiceDeclarationError(self):
+
+        with self.assertRaisesRegexp(ServiceDefinitionError, 'Yolo.deps must be an instance of gasofo.service.Needs'):
+            class Yolo(Service):
+                deps = ['a']
+
+    def test_overriding_meta_in_Service_raises_ServiceDeclarationError(self):
+
+        with self.assertRaisesRegexp(ServiceDefinitionError, '"meta" is a reserved attributes and should not be overridden'):
+            class Yolo(Service):
+                meta = None
+
 
 class ServiceNeedsTest(TestCase):
 
