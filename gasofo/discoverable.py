@@ -125,3 +125,8 @@ class AutoDiscoverConnections(object):
 def wire_up_discovered_connections(discovered):
     for port_name, consumer, provider in discovered.connections():
         consumer.set_provider(port_name=port_name, provider=provider)
+
+
+def auto_wire(components):
+    discovered = AutoDiscoverConnections(components)
+    wire_up_discovered_connections(discovered)

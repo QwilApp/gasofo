@@ -34,7 +34,7 @@ class DomainProviderMetadata(ProviderMetadata):
         )
 
     def get_provider_method_name(self, port_name):
-        if port_name not in self.get_provider:
+        if port_name not in self.get_provides():
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
         else:
             return port_name
@@ -53,6 +53,7 @@ class DomainProviderMetadata(ProviderMetadata):
             provider_class = self.get_provider(port)
             provider_instance = service_map[provider_class]
             provider_flags = provider_instance.get_provider_flags(port_name=port)
+
             provider_func = provider_instance.get_provider_func(port_name=port)
             clone.register_provider(port_name=port, service=provider_instance, flags=provider_flags)
 
@@ -116,7 +117,9 @@ class DomainMetaclass(type):
                     port
                 ))
 
-            meta.register_provider(port_name=port, service=provider, flags=provider.get_provider_flags(port))
+            inherited_flags = provider.get_provider_flags(port)
+            inherited_flags.pop('with_name', None)  # don't inherit name-change flags
+            meta.register_provider(port_name=port, service=provider, flags=inherited_flags)
             state[port] = generate_domain_method(port_name=port, provider=provider)
 
         return type.__new__(mcs, name, bases, state)
@@ -160,7 +163,7 @@ class Domain(INeed, IProvide):
 
     def __init__(self):
         super(Domain, self).__init__()
-        service_map = self._instantiate_and_map_services()
+        self._service_map = service_map = self._instantiate_and_map_services()
 
         # replace 'meta' with a variant for the instance (don't share self.__class__.meta)
         self.meta = self.__class__.meta.get_instance_metadata(service_map=service_map)
