@@ -14,7 +14,8 @@ from gasofo.ports import (
     PortArray,
     ShadowPortArray
 )
-from gasofo.service import ProviderMetadata
+from gasofo.service import ProviderMetadata, Service
+from functools import wraps
 
 __author__ = 'shawn'
 
@@ -62,17 +63,17 @@ class DomainProviderMetadata(ProviderMetadata):
 
 
 def generate_domain_method(port_name, provider):
-
     # We can't use get_provider_func here since we're operating on service classes.
     # - we don't need the bound method, here. We just want a ref to the method so we can pull docstrings etc.
     provider_method_name = provider.meta.get_provider_method_name(port_name=port_name)
     provider_func = getattr(provider, provider_method_name)
 
+    @wraps(provider_func)
     def generated(self, *args, **kwargs):
         port = getattr(self.meta.ports, port_name)
         return port(*args, **kwargs)
 
-    generated.__doc__ = provider_func.__doc__
+    # generated.__doc__ = provider_func.__doc__
     generated.__name__ = port_name
     return generated
 
@@ -80,8 +81,10 @@ def generate_domain_method(port_name, provider):
 class DomainMetaclass(type):
 
     def __new__(mcs, name, bases, state):
+        mcs.validate_overridden_attributes(attrs=state, class_name=name)
+
         if '__services__' not in state or not isinstance(state['__services__'], (list, tuple)):
-            raise DomainDefinitionError('{}.__services__ must be a list of component classes'.format(name))
+            raise DomainDefinitionError('{}.__services__ must be defined with a list of component classes'.format(name))
         else:
             service_classes = state['__services__']
             for service_class in service_classes:
@@ -106,8 +109,14 @@ class DomainMetaclass(type):
         state['meta'] = meta = DomainProviderMetadata()
         for port in state['__provides__']:
             provider = discovered.get_provider(port_name=port)
-            meta.register_provider(port_name=port, service=provider, flags=provider.get_provider_flags(port))
 
+            if not issubclass(provider, (Service, Domain)):
+                raise DomainDefinitionError('Port of non-service class ({}.{}) cannot be published on the domain'.format(
+                    provider.__name__,
+                    port
+                ))
+
+            meta.register_provider(port_name=port, service=provider, flags=provider.get_provider_flags(port))
             state[port] = generate_domain_method(port_name=port, provider=provider)
 
         return type.__new__(mcs, name, bases, state)
@@ -119,9 +128,26 @@ class DomainMetaclass(type):
                 name,
                 service_class,
             ))
-        if not issubclass(service_class, INeed) and not issubclass(service_class, IProvide):
-            msg = 'Component classes defined in {}.__services__ should inherit INeed and/or IProvide'.format(name)
+        if not issubclass(service_class, IProvide):
+            msg = 'Component classes defined in {}.__services__ should inherit be subclass of IProvide'.format(name)
             raise DomainDefinitionError(msg)
+
+    @classmethod
+    def validate_overridden_attributes(mcs, attrs, class_name):
+        if class_name == 'Domain':  # fine for base class
+            return
+
+        if '__init__' in attrs:
+            raise DomainDefinitionError('{} has custom constructor which is not allowed for Domains'.format(class_name))
+
+        allowed_attrs = {'__provides__', '__services__'}
+        non_underscored_attrs = (attr for attr in attrs if not attr.startswith('_'))
+        bad_attrs = [attr for attr in non_underscored_attrs if attr not in allowed_attrs]
+        if bad_attrs:
+            raise DomainDefinitionError((
+                'Domains cannot be defined with custom methods or attributes. '
+                'Found {} defined on {}'
+            ).format(', '.join(bad_attrs), class_name))
 
 
 class Domain(INeed, IProvide):
@@ -141,7 +167,7 @@ class Domain(INeed, IProvide):
 
         # replace 'deps' with a ShadowPortArray which serves as proxy to the deps of internal services
         components = service_map.values()
-        component_deps = [c.deps for c in components]
+        component_deps = [c.deps for c in components if isinstance(getattr(c, 'deps', None), PortArray)]
         discovered = AutoDiscoverConnections(components=components)
         self.deps = ShadowPortArray(arrays=component_deps, ignore_ports=discovered.satisfied_needs())
 

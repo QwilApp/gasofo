@@ -4,7 +4,8 @@ from gasofo.exceptions import (
     DisconnectedPort,
     DuplicateProviders,
     IncompatibleProvider,
-    SelfReferencingMadness, UnknownPort
+    SelfReferencingMadness,
+    UnknownPort
 )
 
 __author__ = 'shawn'
