@@ -1,4 +1,6 @@
 import inspect
+import re
+from functools import wraps
 
 from gasofo.discoverable import (
     AutoDiscoverConnections,
@@ -14,8 +16,10 @@ from gasofo.ports import (
     PortArray,
     ShadowPortArray
 )
-from gasofo.service import ProviderMetadata, Service
-from functools import wraps
+from gasofo.service import (
+    ProviderMetadata,
+    Service
+)
 
 __author__ = 'shawn'
 
@@ -79,6 +83,21 @@ def generate_domain_method(port_name, provider):
     return generated
 
 
+class AutoProvide(object):
+
+    def __init__(self, pattern=None):
+        self.matcher = re.compile(pattern) if pattern else None
+
+    def filter(self, port_names):
+        return [port for port in port_names if self.acceptable_port_name(port)]
+
+    def acceptable_port_name(self, port_name):
+        if not self.matcher:
+            return True
+        else:
+            return bool(self.matcher.match(port_name))
+
+
 class DomainMetaclass(type):
 
     def __new__(mcs, name, bases, state):
@@ -92,14 +111,20 @@ class DomainMetaclass(type):
                 mcs._assert_is_compatible_class(name, service_class)
 
         discovered = AutoDiscoverConnections(service_classes)
+        provides = state.get('__provides__', None)
 
-        if '__provides__' not in state or not isinstance(state['__provides__'], (list, tuple)):
+        if provides is None or not isinstance(provides, (list, tuple, AutoProvide)):
             raise DomainDefinitionError('{}.__provides__ must be defined with a list of port names'.format(name))
         else:
-            for port_name in state['__provides__']:
-                if port_name not in discovered.get_provides():
-                    raise DomainDefinitionError(
-                        '"{}" listed in {}.__provides__ is not provided by any of the services'.format(port_name, name))
+            if isinstance(provides, AutoProvide):  # auto-discover provides ports
+                auto_provider = provides
+                provides_ports = auto_provider.filter(discovered.get_provides())
+            else:
+                for port_name in provides:
+                    if port_name not in discovered.get_provides():
+                        raise DomainDefinitionError(
+                            '"{}" listed in {}.__provides__ is not provided by any of the services'.format(port_name, name))
+                provides_ports = provides
 
         # all unsatisfied deps are exposed as dependencies of the domain
         state['deps'] = deps = PortArray()
@@ -108,7 +133,7 @@ class DomainMetaclass(type):
 
         # declared 'provides' ports are registered and entry points created
         state['meta'] = meta = DomainProviderMetadata()
-        for port in state['__provides__']:
+        for port in provides_ports:
             provider = discovered.get_provider(port_name=port)
 
             if not issubclass(provider, (Service, Domain)):

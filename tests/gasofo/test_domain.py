@@ -1,8 +1,13 @@
 from unittest import TestCase
 
-from gasofo.discoverable import IProvide
-from gasofo.domain import Domain
-from gasofo.discoverable import auto_wire
+from gasofo.discoverable import (
+    IProvide,
+    auto_wire
+)
+from gasofo.domain import (
+    AutoProvide,
+    Domain
+)
 from gasofo.exceptions import (
     DisconnectedPort,
     DomainDefinitionError,
@@ -11,7 +16,8 @@ from gasofo.exceptions import (
 from gasofo.service import (
     Needs,
     Service,
-    provides, provides_with
+    provides,
+    provides_with
 )
 
 
@@ -309,6 +315,49 @@ class DomainProvidesTest(TestCase):
 
         with self.assertRaisesRegexp(UnknownPort, '"moo" is not a valid port'):
             animals.meta.get_provider('moo')
+
+
+class DomainAutoProviderTest(TestCase):
+
+    @staticmethod
+    def get_services():
+
+        class Dog(Service):
+            @provides
+            def bark(self):
+                return 'woof'
+
+        class Cat(Service):
+            @provides_with(name='meow')
+            def hiss(self):
+                return '(nope)'
+
+            @provides
+            def purr(self):
+                return '(krooo kroo)'
+
+        class Kids(Service):
+            @provides
+            def complain(self):
+                return '(yapp yapp yapp yapp yapp yapp)'
+
+        return Dog, Cat, Kids
+
+    def test_domain_that_auto_exports_all_ports(self):
+
+        class Noisy(Domain):
+            __services__ = self.get_services()
+            __provides__ = AutoProvide()
+
+        self.assertItemsEqual(['bark', 'meow', 'purr', 'complain'], Noisy.get_provides())
+
+    def test_domain_that_auto_exports_ports_that_matches_pattern(self):
+
+        class Noisy(Domain):
+            __services__ = self.get_services()
+            __provides__ = AutoProvide(r'.{4}$')  # take only 4-letter ports
+
+        self.assertItemsEqual(['bark', 'meow', 'purr'], Noisy.get_provides())
 
 
 class DomainNeedsTest(TestCase):

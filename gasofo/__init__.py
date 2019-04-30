@@ -1,8 +1,8 @@
 from gasofo.discoverable import (
     INeed,
-    IProvide
+    IProvide, auto_wire
 )
-from gasofo.domain import Domain
+from gasofo.domain import Domain, AutoProvide
 from gasofo.service import (
     Needs,
     Service,
@@ -11,6 +11,8 @@ from gasofo.service import (
 )
 
 __all__ = [
+    'auto_wire',
+    'AutoProvide',
     'Needs',
     'Service',
     'provides_with',
