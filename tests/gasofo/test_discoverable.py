@@ -3,12 +3,15 @@ from unittest import TestCase
 from gasofo.discoverable import (
     AutoDiscoverConnections,
     DiscoveredConnection,
-    INeed
+    INeed,
+    auto_wire
 )
 from gasofo.exceptions import (
+    DisconnectedPort,
     DuplicateProviders,
     IncompatibleProvider,
-    SelfReferencingMadness, DisconnectedPort
+    SelfReferencingMadness,
+    UnknownPort
 )
 from gasofo.service import (
     Needs,
@@ -17,7 +20,7 @@ from gasofo.service import (
 )
 
 
-class AutoDiscoverConnectionsTest(TestCase):
+class AutoDiscoverAndWiringTest(TestCase):
 
     def test_discovery_when_there_are_no_ports(self):
 
@@ -32,8 +35,18 @@ class AutoDiscoverConnectionsTest(TestCase):
         self.assertEqual([], discovered.unsatisfied_needs())
         self.assertEqual([], list(discovered.connections()))
 
-    def test_discovery_of_ports_from_a_collection_of_components(self):
-
+    @staticmethod
+    def get_services():
+        """
+             +-------+
+             |       x
+            a1   A   |          +-------+
+             |       b1 ...... b1       y            +-------+
+             +-------+          |   B   |            |       |
+                               b2       c1 ........ c1   C   |
+                                +-------+            |       |
+                                                     +-------+
+        """
         class A(Service):
             deps = Needs(['b1', 'x'])
 
@@ -57,6 +70,32 @@ class AutoDiscoverConnectionsTest(TestCase):
             def c1(self):
                 return 'boo'
 
+        return A, B, C
+
+    def test_discovery_of_ports_from_a_collection_of_components_classes(self):
+        # We need to be able to discover connects between uninstantiated components for visualisation and analysis
+        A, B, C = self.get_services()
+        discovered = AutoDiscoverConnections([A, B, C])
+
+        self.assertEqual(['b1', 'c1', 'x', 'y'], discovered.get_needs())
+        self.assertEqual(['a1', 'b1', 'b2', 'c1'], discovered.get_provides())
+        self.assertEqual(['x', 'y'], discovered.unsatisfied_needs())
+        self.assertItemsEqual([
+            DiscoveredConnection(port_name='b1', consumer=A, provider=B),
+            DiscoveredConnection(port_name='c1', consumer=B, provider=C)
+        ], discovered.connections())
+
+        self.assertEqual(A, discovered.get_provider('a1'))
+        self.assertEqual(B, discovered.get_provider('b1'))
+        self.assertEqual(B, discovered.get_provider('b2'))
+        self.assertEqual(C, discovered.get_provider('c1'))
+
+        with self.assertRaisesRegexp(UnknownPort, '"x1" is not a valid port'):
+            self.assertEqual(C, discovered.get_provider('x1'))
+
+    def test_discovery_of_ports_from_a_collection_of_components_instances(self):
+
+        A, B, C = self.get_services()
         a = A()
         b = B()
         c = C()
@@ -69,6 +108,28 @@ class AutoDiscoverConnectionsTest(TestCase):
             DiscoveredConnection(port_name='b1', consumer=a, provider=b),
             DiscoveredConnection(port_name='c1', consumer=b, provider=c)
         ], discovered.connections())
+
+        self.assertEqual(a, discovered.get_provider('a1'))
+        self.assertEqual(b, discovered.get_provider('b1'))
+        self.assertEqual(b, discovered.get_provider('b2'))
+        self.assertEqual(c, discovered.get_provider('c1'))
+
+        with self.assertRaisesRegexp(UnknownPort, '"x1" is not a valid port'):
+            self.assertEqual(c, discovered.get_provider('x1'))
+
+    def test_auto_wiring_of_ports_from_a_collection_of_component_instances(self):
+        A, B, C = self.get_services()
+        a = A()
+        b = B()
+        c = C()
+
+        auto_wire([a, b, c])
+
+        self.assertEqual(b, a.get_provider('b1'))
+        self.assertEqual(c, b.get_provider('c1'))
+
+        self.assertRaises(DisconnectedPort, a.get_provider, 'x')
+        self.assertRaises(DisconnectedPort, b.get_provider, 'y')
 
     def test_SelfReferencingMadness_raised_if_component_attempts_to_satisfy_itself(self):
 
