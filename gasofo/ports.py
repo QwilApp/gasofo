@@ -36,6 +36,7 @@ class PortArray(object):
             raise DuplicatePortDefinition('Port "{}" already defined'.format(port_name))
 
         self._ports.add(port_name)
+        # TODO: generate func that inherits argspec from a template func (if one is provided)
         raise_not_connected = self._get_placeholder_func_for_disconnected_port(port_name=port_name)
         setattr(self, port_name, raise_not_connected)
 

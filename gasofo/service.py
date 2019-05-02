@@ -7,14 +7,16 @@ from gasofo.discoverable import (
     IProvide
 )
 from gasofo.exceptions import (
-    DuplicatePortDefinition,
     DuplicateProviders,
     ServiceDefinitionError,
     UnknownPort,
     UnusedPort
 )
-from gasofo.ports import PortArray, RESERVED_PORT_NAMES
-
+from gasofo.ports import (
+    PortArray,
+    RESERVED_PORT_NAMES
+)
+from gasofo.service_needs import Needs
 
 __author__ = 'shawn'
 
@@ -30,11 +32,11 @@ def provides_with(name=None, **kwargs):
 
         Use this instead of @provides when exposing a port with a custom name or to tag on additional flags.
     """
-    PortArray.assert_valid_port_name(name)
+    PortArray.assert_valid_port_name(port_name=name)
     port_attrs = kwargs
 
     if name:
-        PortArray.assert_valid_port_name(name)
+        PortArray.assert_valid_port_name(port_name=name)
         port_attrs['with_name'] = name
 
     def decorator(method):
@@ -42,25 +44,6 @@ def provides_with(name=None, **kwargs):
         return method
 
     return decorator
-
-
-class Needs(PortArray):
-    """Used to defined the Needs ports of a Service.
-
-        @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
-    """
-
-    def __init__(self, needs):
-        super(Needs, self).__init__()
-
-        if isinstance(needs, basestring):
-            needs = [needs]
-
-        for port in needs:
-            try:
-                self.add_port(port)
-            except DuplicatePortDefinition:
-                raise DuplicatePortDefinition('"{}" port is duplicated'.format(port))
 
 
 class ProviderMetadata(object):
@@ -114,6 +97,9 @@ class ServiceMetaclass(type):
     """ Metaclass that makes classes aware of @provides and ensures .deps and .meta is specified correctly."""
 
     def __new__(mcs, name, bases, state):
+        if bases == (INeed, IProvide):  # This is the Service class itself, not its subclass
+            return type.__new__(mcs, name, bases, state)
+
         mcs.validate_overridden_attributes(attrs=state, class_name=name)
 
         # walk attributes and register the ones that have been tagged by @provides
@@ -136,13 +122,9 @@ class ServiceMetaclass(type):
             raise ServiceDefinitionError('"meta" is a reserved attributes and should not be overridden')
 
         if 'deps' in attrs and not isinstance(attrs['deps'], Needs):
-            raise ServiceDefinitionError('{}.deps must be an instance of {}.{}'.format(
-                class_name,
-                Needs.__module__,
-                Needs.__name__,
-            ))
+            raise ServiceDefinitionError('{}.deps must be an instance of gasofo.Needs'.format(class_name))
 
-        if '__init__' in attrs and class_name != 'Service':
+        if '__init__' in attrs:
             raise ServiceDefinitionError('To emphasize statelessness, {} should not define __init__'.format(class_name))
 
     @classmethod

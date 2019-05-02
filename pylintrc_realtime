@@ -1,0 +1,10 @@
+[MASTER]
+
+load-plugins=ocd.pylint.checkers
+
+
+[MESSAGES CONTROL]
+
+# for runtime checks, we only run selected rules to limit performance overheads. PyCharm already does the basic linting.
+disable=all
+enable=qwil-no-positional-call-args

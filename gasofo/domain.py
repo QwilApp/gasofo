@@ -73,6 +73,7 @@ def generate_domain_method(port_name, provider):
     provider_method_name = provider.meta.get_provider_method_name(port_name=port_name)
     provider_func = getattr(provider, provider_method_name)
 
+    # TODO: inherit argspec from service ports. (and what can we do about type hints?)
     @wraps(provider_func)
     def generated(self, *args, **kwargs):
         port = getattr(self.meta.ports, port_name)
@@ -101,6 +102,9 @@ class AutoProvide(object):
 class DomainMetaclass(type):
 
     def __new__(mcs, name, bases, state):
+        if bases == (INeed, IProvide):  # This is the Domain class itself, not its subclass
+            return type.__new__(mcs, name, bases, state)
+
         mcs.validate_overridden_attributes(attrs=state, class_name=name)
 
         if '__services__' not in state or not isinstance(state['__services__'], (list, tuple)):
@@ -122,8 +126,11 @@ class DomainMetaclass(type):
             else:
                 for port_name in provides:
                     if port_name not in discovered.get_provides():
-                        raise DomainDefinitionError(
-                            '"{}" listed in {}.__provides__ is not provided by any of the services'.format(port_name, name))
+                        msg = '"{}" listed in {}.__provides__ is not provided by any of the services'.format(
+                            port_name,
+                            name,
+                        )
+                        raise DomainDefinitionError(msg)
                 provides_ports = provides
 
         # all unsatisfied deps are exposed as dependencies of the domain
@@ -137,10 +144,11 @@ class DomainMetaclass(type):
             provider = discovered.get_provider(port_name=port)
 
             if not issubclass(provider, (Service, Domain)):
-                raise DomainDefinitionError('Port of non-service class ({}.{}) cannot be published on the domain'.format(
+                msg = 'Port of non-service class ({}.{}) cannot be published on the domain'.format(
                     provider.__name__,
                     port
-                ))
+                )
+                raise DomainDefinitionError(msg)
 
             inherited_flags = provider.get_provider_flags(port)
             inherited_flags.pop('with_name', None)  # don't inherit name-change flags
@@ -162,9 +170,6 @@ class DomainMetaclass(type):
 
     @classmethod
     def validate_overridden_attributes(mcs, attrs, class_name):
-        if class_name == 'Domain':  # fine for base class
-            return
-
         if '__init__' in attrs:
             raise DomainDefinitionError('{} has custom constructor which is not allowed for Domains'.format(class_name))
 

@@ -42,6 +42,10 @@ class DomainDefinitionError(GasofoError):
     """Raised when a Service definition is invalid."""
 
 
+class NeedsInterfaceDefinitionError(GasofoError):
+    """Raised when a Needs interface is incorrectly defined."""
+
+
 class YouCannotDoThat(GasofoError):
     """Raised when an invalid action is requested or executed."""
 

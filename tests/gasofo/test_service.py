@@ -4,16 +4,15 @@ from gasofo import (
     Needs,
     Service,
     provides,
-    provides_with
+    provides_with,
 )
 from gasofo.exceptions import (
-    DisconnectedPort,
     DuplicatePortDefinition,
     DuplicateProviders,
     InvalidPortName,
     ServiceDefinitionError,
     UnknownPort,
-    UnusedPort
+    UnusedPort,
 )
 
 
@@ -147,8 +146,8 @@ class ServiceDefinitionTest(TestCase):
                     return self.deps.not_a_port(), self.deps.not_a_port(), self.deps.abc()
 
     def test_constructor_not_allowed_for_services(self):
-
-        with self.assertRaisesRegexp(ServiceDefinitionError, 'To emphasize statelessness, MyService should not define __init__'):
+        msg = 'To emphasize statelessness, MyService should not define __init__'
+        with self.assertRaisesRegexp(ServiceDefinitionError, msg):
             class MyService(Service):
                 def __init__(self):
                     super(MyService, self).__init__()
@@ -303,87 +302,12 @@ class ServiceProvidesTest(TestCase):
 
     def test_setting_deps_to_anything_other_than_Needs_raises_ServiceDeclarationError(self):
 
-        with self.assertRaisesRegexp(ServiceDefinitionError, 'Yolo.deps must be an instance of gasofo.service.Needs'):
+        with self.assertRaisesRegexp(ServiceDefinitionError, 'Yolo.deps must be an instance of gasofo.Needs'):
             class Yolo(Service):
                 deps = ['a']
 
     def test_overriding_meta_in_Service_raises_ServiceDeclarationError(self):
-
-        with self.assertRaisesRegexp(ServiceDefinitionError, '"meta" is a reserved attributes and should not be overridden'):
+        msg = '"meta" is a reserved attributes and should not be overridden'
+        with self.assertRaisesRegexp(ServiceDefinitionError, msg):
             class Yolo(Service):
                 meta = None
-
-
-class ServiceNeedsTest(TestCase):
-
-    def test_querying_needs_ports_on_service_class_and_instance(self):
-
-        class MyService(Service):
-            deps = Needs(['health', 'time', 'money'])
-
-            @provides
-            def happiness(self):
-                return self.deps.health(), self.deps.time(), self.deps.money()
-
-        self.assertItemsEqual(['health', 'time', 'money'], MyService.get_needs())
-        self.assertItemsEqual(['health', 'time', 'money'], MyService().get_needs())
-
-    def test_access_to_unadapted_needs_port_raises_DisconnectedPort(self):
-
-        class MyService(Service):
-            deps = Needs(['health'])
-
-            @provides
-            def happiness(self):
-                return self.deps.health()
-
-        service = MyService()
-
-        with self.assertRaisesRegexp(DisconnectedPort, 'Port "health" has not been connected'):
-            service.happiness()  # for brevity we access method directly rather than Provides port.
-
-    def test_satisfying_service_needs_by_connecting_to_another_service(self):
-
-        class Producer(Service):
-            @provides
-            def food(self):
-                return 'Milk'
-
-        class Consumer(Service):
-            deps = Needs(['food'])
-
-            @provides
-            def eat(self):
-                return self.deps.food()
-
-        producer = Producer()
-        consumer = Consumer()
-        consumer.set_provider(port_name='food', provider=producer)
-
-        self.assertEqual('Milk', consumer.eat())  # for brevity we access method directly rather than Provides port.
-
-    def test_needs_of_different_service_instances_are_isolated_and_not_shared(self):
-
-        class Producer(Service):
-            @provides
-            def food(self):
-                return 'Milk'
-
-        class Consumer(Service):
-            deps = Needs(['food'])
-
-            @provides
-            def eat(self):
-                return self.deps.food()
-
-        producer = Producer()
-        consumer = Consumer()
-        another_consumer = Consumer()
-
-        consumer.set_provider(port_name='food', provider=producer)
-
-        self.assertEqual('Milk', consumer.eat())  # connected
-        with self.assertRaisesRegexp(DisconnectedPort, 'Port "food" has not been connected'):
-            another_consumer.eat()  # not connected
-
-        self.assertIs(producer, consumer.get_provider(port_name='food'))
