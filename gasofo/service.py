@@ -4,19 +4,21 @@ import textwrap
 
 from gasofo.discoverable import (
     INeed,
-    IProvide
+    IProvide,
 )
 from gasofo.exceptions import (
     DuplicateProviders,
     ServiceDefinitionError,
     UnknownPort,
-    UnusedPort
+    UnusedPort,
 )
 from gasofo.ports import (
     PortArray,
-    RESERVED_PORT_NAMES
+    RESERVED_PORT_NAMES,
 )
-from gasofo.service_needs import Needs
+from gasofo.service_needs import (
+    Needs,
+)
 
 __author__ = 'shawn'
 
@@ -195,3 +197,19 @@ class Service(INeed, IProvide):
     @classmethod
     def get_provider_flags(cls, port_name):
         return cls.meta.get_provider_flags(port_name)
+
+
+def get_template_funcs(service):
+    """Used by gasofo testing utils to assert calls are made with correct argspec."""
+    try:
+        if inspect.isclass(service):
+            deps = service.deps
+        else:
+            deps = service.__class__.deps
+        return deps._needs_template_funcs.copy()
+    except AttributeError:
+        return {port: unknown_interface for port in service.get_needs()}
+
+
+def unknown_interface(self, *args, **kwargs):
+    raise NotImplementedError

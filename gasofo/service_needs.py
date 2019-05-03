@@ -13,13 +13,13 @@ class Needs(PortArray):
         @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
     """
 
-    def __init__(self, needs):
+    def __init__(self, ports):
         super(Needs, self).__init__()
 
-        if isinstance(needs, basestring):
-            needs = [needs]
+        if isinstance(ports, basestring):
+            ports = [ports]
 
-        for port in needs:
+        for port in ports:
             try:
                 self.add_port(port_name=port)
             except DuplicatePortDefinition:
@@ -51,7 +51,12 @@ class NeedsInterfaceMetaclass(type):
             # However, we do keep a reference to the original functions for debugging and testing purposes.
             needs[attr_name] = state.pop(attr_name)
 
-        state['_needs'] = needs
+        state['_needs'] = needs.keys()
+        state['_needs_template_funcs'] = needs
+
+        # SHC: not sure this is a good ideal. Hide this away for now
+        # state['_template_class'] = type(name + 'Template', (), needs)  # generate subclass-able interface class
+
         return type.__new__(mcs, name, bases, state)
 
 
@@ -60,4 +65,4 @@ class NeedsInterface(Needs):
     __metaclass__ = NeedsInterfaceMetaclass
 
     def __init__(self):
-        super(NeedsInterface, self).__init__(needs=self._needs)  # apply needs discovered by metaclass
+        super(NeedsInterface, self).__init__(ports=self._needs)  # apply needs discovered by metaclass

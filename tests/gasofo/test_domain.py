@@ -1,23 +1,29 @@
+import inspect
 from unittest import TestCase
 
 from gasofo.discoverable import (
     IProvide,
-    auto_wire
+    auto_wire,
 )
 from gasofo.domain import (
     AutoProvide,
-    Domain
+    Domain,
 )
 from gasofo.exceptions import (
     DisconnectedPort,
     DomainDefinitionError,
-    UnknownPort
+    InconsistentInterface,
+    UnknownPort,
 )
 from gasofo.service import (
-    Needs,
     Service,
+    get_template_funcs,
     provides,
-    provides_with
+    provides_with,
+)
+from gasofo.service_needs import (
+    Needs,
+    NeedsInterface,
 )
 
 
@@ -616,3 +622,141 @@ class DomainConnectivityTest(TestCase):
 
         self.assertEqual(expected_values['a1'], domain.a1())
         self.assertEqual(expected_values['b2'], domain.b2())
+
+
+class DomainTemplateFuncTest(TestCase):
+    """
+    These tests ensures that _get_template_funcs() works correctly. This feature is not used in 'production' usage
+    and only by the test framework to assert ports are called with expected args/kwargs.
+
+    In other words, this is a test of a feature used only by the test utility to test actual usage.
+    """
+
+    def _get_domain_class(self):
+        class NeedsForA(NeedsInterface):
+            def a(self, x, y=123):
+                pass
+
+        class A(Service):
+            deps = NeedsForA()
+
+            @provides
+            def aaa(self):
+                return self.deps.a()
+
+        class B(Service):
+            deps = Needs(['b'])
+
+            @provides
+            def bbb(self):
+                return self.deps.b()
+
+        class D(Domain):
+            __services__ = [A, B]
+            __provides__ = ['aaa', 'bbb']
+
+        return D
+
+    def test_domain_inherits_needs_template_functions_from_the_services_they_encapsulate(self):
+        D = self._get_domain_class()
+        domain = D()
+        template_funcs = get_template_funcs(service=domain)
+        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+
+        self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
+        self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['b'])
+
+    def test_template_function_propagation_works_for_nested_domains(self):
+        D = self._get_domain_class()
+
+        class SuperDomain(Domain):
+            __services__ = [D]
+            __provides__ = AutoProvide()
+
+        domain = SuperDomain()
+        template_funcs = get_template_funcs(service=domain)
+        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+
+        self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
+        self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['b'])
+
+    def tests_template_function_propagation_for_services_with_same_needs_and_same_interface(self):
+
+        class NeedsA(NeedsInterface):
+            def a(self, x, y=123):
+                pass
+
+        class A(Service):
+            deps = NeedsA()
+
+            @provides
+            def aaa(self):
+                return self.deps.a()
+
+        class NeedsAB(NeedsInterface):
+            def a(self, x, y=123):  # matching argspec
+                pass
+
+            def b(self, z):
+                pass
+
+        class AB(Service):
+            deps = NeedsAB()
+
+            @provides
+            def abb(self):
+                return self.deps.a() + self.deps.b()
+
+        class B(Service):
+            deps = Needs(['b'])  # no interface, should still match
+
+            @provides
+            def bbb(self):
+                return self.deps.b()
+
+        class D(Domain):
+            __services__ = [A, B, AB]
+            __provides__ = AutoProvide()
+
+        domain = D()
+        template_funcs = get_template_funcs(service=domain)
+        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+
+        self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
+        self.assert_has_same_argspec(lambda self, z: None, template_funcs['b'])
+
+    def test_combining_services_with_same_needs_but_different_interface_raises(self):
+
+        class NeedsA(NeedsInterface):
+            def a(self, x, y=123):
+                pass
+
+        class A(Service):
+            deps = NeedsA()
+
+            @provides
+            def aaa(self):
+                return self.deps.a()
+
+        class NeedsAB(NeedsInterface):
+            def a(self, x, y):  # argspec not exact match
+                pass
+
+            def b(self, z):
+                pass
+
+        class AB(Service):
+            deps = NeedsAB()
+
+            @provides
+            def abb(self):
+                return self.deps.a() + self.deps.b()
+
+        msg = 'The following components all need "a" but expect different interfaces - A, AB'
+        with self.assertRaisesRegexp(InconsistentInterface, msg):
+            class D(Domain):
+                __services__ = [A, AB]
+                __provides__ = AutoProvide()
+
+    def assert_has_same_argspec(self, func1, func2):
+        self.assertEqual(inspect.getargspec(func=func1), inspect.getargspec(func=func2))

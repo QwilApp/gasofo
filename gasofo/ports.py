@@ -22,6 +22,7 @@ RESERVED_PORT_NAMES = frozenset((
     'connect_port',
     'get_needs',
     'get_provides',
+    'get_interface_class',
     'assert_valid_port_name',
 ))
 

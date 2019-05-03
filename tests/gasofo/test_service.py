@@ -1,11 +1,6 @@
+import inspect
 from unittest import TestCase
 
-from gasofo import (
-    Needs,
-    Service,
-    provides,
-    provides_with,
-)
 from gasofo.exceptions import (
     DuplicatePortDefinition,
     DuplicateProviders,
@@ -13,6 +8,16 @@ from gasofo.exceptions import (
     ServiceDefinitionError,
     UnknownPort,
     UnusedPort,
+)
+from gasofo.service import (
+    Service,
+    get_template_funcs,
+    provides,
+    provides_with,
+)
+from gasofo.service_needs import (
+    Needs,
+    NeedsInterface,
 )
 
 
@@ -311,3 +316,55 @@ class ServiceProvidesTest(TestCase):
         with self.assertRaisesRegexp(ServiceDefinitionError, msg):
             class Yolo(Service):
                 meta = None
+
+
+class ServiceTemplateFuncTest(TestCase):
+    """
+    These tests ensures that _get_template_funcs() works correctly. This feature is not used in 'production' usage
+    and only by the test framework to assert ports are called with expected args/kwargs.
+
+    In other words, this is a test of a feature used only by the test utility to test actual usage.
+    """
+
+    def test_needs_defined_using_Needs_class_has_template_funcs_with_correct_argspec(self):
+        class MyService(Service):
+            deps = Needs(ports=['a', 'b'])
+
+            @provides
+            def x(self):
+                return self.deps.a() + self.deps.b()
+
+        service = MyService()
+        template_funcs = get_template_funcs(service=service)
+        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+
+        def expected_template(self, *args, **kwargs):
+            pass
+
+        self.assert_has_same_argspec(expected_template, template_funcs['a'])
+        self.assert_has_same_argspec(expected_template, template_funcs['b'])
+
+    def test_needs_defined_using_NeedsInterface_class_has_templte_funcs_with_correct_argspec(self):
+
+        class MyDeps(NeedsInterface):
+            def a(self, x, y=123): pass
+            def b(self, x, **kwargs): pass
+            def c(self, *args, **kwargs): pass
+
+        class MyService(Service):
+            deps = MyDeps()
+
+            @provides
+            def x(self):
+                return self.deps.a() + self.deps.b() + self.deps.c()
+
+        service = MyService()
+        template_funcs = get_template_funcs(service=service)
+        self.assertItemsEqual(['a', 'b', 'c'], template_funcs.keys())
+
+        self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
+        self.assert_has_same_argspec(lambda self, x, **kwargs: None, template_funcs['b'])
+        self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['c'])
+
+    def assert_has_same_argspec(self, func1, func2):
+        self.assertEqual(inspect.getargspec(func=func1), inspect.getargspec(func=func2))

@@ -30,6 +30,7 @@ To cover:
 
 To cover:
 * `__services__` and `__provides__`
+* `AutoProvide()`
 * (to be implemented) argspec of domain methods
 * "Nestability"
 

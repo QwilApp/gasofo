@@ -52,3 +52,7 @@ class YouCannotDoThat(GasofoError):
 
 class IncompatibleProvider(GasofoError):
     """Raised when connecting an incompatible provider to a port."""
+
+
+class InconsistentInterface(GasofoError):
+    """Raised when ports in question have inconsistent interfaces."""

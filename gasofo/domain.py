@@ -6,22 +6,27 @@ from gasofo.discoverable import (
     AutoDiscoverConnections,
     INeed,
     IProvide,
-    wire_up_discovered_connections
+    wire_up_discovered_connections,
 )
 from gasofo.exceptions import (
     DomainDefinitionError,
-    UnknownPort
+    InconsistentInterface,
+    UnknownPort,
 )
 from gasofo.ports import (
     PortArray,
-    ShadowPortArray
+    ShadowPortArray,
 )
 from gasofo.service import (
     ProviderMetadata,
-    Service
+    Service,
+    get_template_funcs,
+    unknown_interface,
 )
 
 __author__ = 'shawn'
+
+GENERIC_ARGSPEC = inspect.getargspec(unknown_interface)
 
 
 class DomainProviderMetadata(ProviderMetadata):
@@ -138,6 +143,17 @@ class DomainMetaclass(type):
         for port_name in discovered.unsatisfied_needs():
             deps.add_port(port_name)
 
+        # make a shadow copy of template_funcs. Used mainly for tracking intended interfaces for ports so we can
+        # use for validation during testing. At some point we might use this for wiring-time checks too to ensure
+        # compatibility between ports.
+        deps._needs_template_funcs = template_funcs = {}
+        for port in deps.get_ports():
+            template_func = mcs._assert_providers_compatible_and_extract_template_func(
+                providers=discovered._needs[port],
+                port_name=port,
+            )
+            template_funcs[port] = template_func
+
         # declared 'provides' ports are registered and entry points created
         state['meta'] = meta = DomainProviderMetadata()
         for port in provides_ports:
@@ -182,6 +198,33 @@ class DomainMetaclass(type):
                 'Found {} defined on {}'
             ).format(', '.join(bad_attrs), class_name))
 
+    @staticmethod
+    def _assert_providers_compatible_and_extract_template_func(providers, port_name):
+        assert providers, 'why are you calling me if there are no providers for {}?'.format(port_name)
+
+        func_map = {}
+        spec_map = {}
+
+        for provider in providers:
+            func_map[provider] = func = get_template_funcs(provider)[port_name]
+            spec_map[provider] = inspect.getargspec(func)
+
+        non_generic_specs = {provider: spec for provider, spec in spec_map.iteritems() if spec != GENERIC_ARGSPEC}
+
+        if not non_generic_specs:  # all needs of this port did not specific an interface
+            return func_map.itervalues().next()  # just return the first one
+
+        specs = non_generic_specs.values()
+        if not all(spec == specs[0] for spec in specs):  # we have a mixture of specs
+            msg = 'The following components all need "{}" but expect different interfaces - {}'.format(
+                port_name,
+                ', '.join(sorted(p.__name__ for p in non_generic_specs.iterkeys()))
+            )
+            raise InconsistentInterface(msg)
+        else:
+            chosen_one = non_generic_specs.iterkeys().next()
+            return func_map[chosen_one]
+
 
 class Domain(INeed, IProvide):
     """
@@ -205,7 +248,7 @@ class Domain(INeed, IProvide):
         self.deps = ShadowPortArray(arrays=component_deps, ignore_ports=discovered.satisfied_needs())
 
         # materialize connections between services
-        wire_up_discovered_connections(discovered)
+        wire_up_discovered_connections(discovered=discovered)
 
     def _instantiate_and_map_services(self):
         mapper = {service_class: service_class() for service_class in self.__services__}
