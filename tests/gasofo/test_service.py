@@ -366,5 +366,21 @@ class ServiceTemplateFuncTest(TestCase):
         self.assert_has_same_argspec(lambda self, x, **kwargs: None, template_funcs['b'])
         self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['c'])
 
+    def test_default_template_func_is_consistent_and_has_wildcard_specs_but_not_callable(self):
+        class MyService(Service):
+            deps = Needs(ports=['a', 'b'])
+
+            @provides
+            def x(self):
+                return self.deps.a() + self.deps.b()
+
+        service = MyService()
+        template_funcs = get_template_funcs(service=service)
+
+        func = template_funcs['a']
+        self.assertIs(func, template_funcs['b'])
+        self.assert_has_same_argspec(lambda self, *args, **kwargs: None, func)
+        self.assertRaises(NotImplementedError, func, None)  # template func meant as unbound methods so expects a 'self'
+
     def assert_has_same_argspec(self, func1, func2):
         self.assertEqual(inspect.getargspec(func=func1), inspect.getargspec(func=func2))
