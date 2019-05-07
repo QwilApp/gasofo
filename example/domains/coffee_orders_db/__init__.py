@@ -1,6 +1,9 @@
 from example.domains.coffee_orders_db.order_history_store_service import OrderHistoryStore
 from example.domains.coffee_orders_db.orders_store_service import OrdersStore
-from gasofo import Domain, AutoProvide
+from gasofo import (
+    AutoProvide,
+    Domain,
+)
 
 __author__ = 'shawn'
 __all__ = ['CoffeeOrderDBInterface']
@@ -14,4 +17,4 @@ class CoffeeOrderDBInterface(Domain):
         OrderHistoryStore,
     ]
 
-    __provides__ = AutoProvide(pattern=r'bl_.+')
+    __provides__ = AutoProvide(pattern=r'db_.+')

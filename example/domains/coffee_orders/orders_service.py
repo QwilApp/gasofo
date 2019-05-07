@@ -1,40 +1,67 @@
+from typing import Optional
+
+from example.shared.datatypes import OrderSummary, OrderDetails, OrderItem
 from example.shared.exceptions import InvalidAction
 from gasofo import (
-    Needs,
+    NeedsInterface,
     Service,
-    provides
+    provides,
 )
 
 __author__ = 'shawn'
 
 
-class Orders(Service):
-    deps = Needs([
-        "db_create_order",
-        "db_close_order",
-        "db_has_active_order",
-        "db_add_order_item",
-        "db_get_order_details",
+class OrdersNeeds(NeedsInterface):
 
-        "is_valid_menu_item",
-        "archive_order"
-    ])
+    def db_get_active_order(self, room):
+        # type: (str) -> Optional[OrderSummary]
+        """Returns summary of active order if exists, None otherwise."""
+
+    def db_create_order(self, room, buyer):
+        # type: (str, str) -> OrderSummary
+        """Creates a new order."""
+
+    def db_close_order(self, room):
+        # type: (str) -> OrderDetails
+        """Closes an order for the room and returns the details."""
+
+    def db_get_order_details(self, room):
+        # type: (str) -> OrderDetails
+        """Returns details of open orders for the given room."""
+
+    def db_add_order_item(self, room, item, recipient):
+        # type: (str, str, str) -> OrderItem
+        """Adds an item to open order of room."""
+
+    def archive_order(self, order_details):
+        # type: (OrderDetails) -> OrderDetails
+        """Archives a closed order."""
+
+    def is_valid_menu_item(self, item_name):
+        # type: (str) -> bool
+        """Checks if the given item is on the menu."""
+
+
+class Orders(Service):
+
+    deps = OrdersNeeds()
 
     @provides
     def open_for_orders(self, requester, room):
+        # type: (str, str) -> OrderSummary
         """Creates an offer to buy coffer by requester in given room.
 
         Args:
-            requester (str): User ID of buyer
-            room (str): Chat room ID
+            requester: User ID of buyer
+            room: Chat room ID
 
         Returns:
-            Instance of ActiveOfferSummary.
+            Order summary or new order
 
         Raises:
             InvalidAction: if there is already an open offer in the given room
         """
-        active_offer = self.deps.db_has_active_order(room=room)
+        active_offer = self.deps.db_get_active_order(room=room)
         if active_offer and active_offer.buyer == requester:
             raise InvalidAction('You already have an open offer to buy coffee')
         elif active_offer:
@@ -44,37 +71,39 @@ class Orders(Service):
 
     @provides
     def close_orders(self, requester, room):
+        # type: (str, str) -> OrderDetails
         """Closes an open order.
 
         Args:
-            requester (str): User ID of buyer
-            room (str): Chat room ID
+            requester: User ID of buyer
+            room: Chat room ID
 
         Returns:
-            Instance of ActiveOfferDetails
+            Details of the closed order
 
         Raises:
             InvalidAction: if there are no open offers in the room
             InvalidAction: if requester is not the buyer who opened the offer
         """
-        active_offer = self.deps.db_has_active_order(room=room)
+        active_offer = self.deps.db_get_active_order(room=room)
         if not active_offer:
             raise InvalidAction('There are no open offers in this room')
         elif active_offer.buyer != requester:
             raise InvalidAction("You cannot close someone else's order")
 
         order_details = self.deps.db_close_order(room=room)
-        self.deps.archive_order(order_details)
+        self.deps.archive_order(order_details=order_details)
         return order_details
 
     @provides
     def make_order(self, requester, room, order_item):
+        # type: (str, str, str) -> OrderItem
         """Adds an item to the existing order.
 
         Args:
-            requester (str): User ID of buyer
-            room (str): Chat room ID
-            order_item (str): Name of item being ordered
+            requester: User ID of buyer
+            room: Chat room ID
+            order_item: Name of item being ordered
 
         Returns:
             Instance of OrderItem
@@ -83,28 +112,28 @@ class Orders(Service):
             InvalidAction: if there are no open offers
             InvalidAction: if item being ordered is not valid
         """
-        active_offer = self.deps.db_has_active_order(room=room)
+        active_offer = self.deps.db_get_active_order(room=room)
         if not active_offer:
             raise InvalidAction('There are no open offers in this room')
 
-        menu_item = self.deps.is_valid_menu_item(item_name=order_item)
-        if not menu_item:
+        if not self.deps.is_valid_menu_item(item_name=order_item):
             raise InvalidAction(order_item + ' is not a valid menu item')
 
         order_item = self.deps.db_add_order_item(room=room,
-                                                 item=menu_item.item,
+                                                 item=order_item,
                                                  recipient=requester)
         return order_item
 
     @provides
     def show_orders(self, room):
+        # type: (str) -> OrderDetails
         """Returns details of existing open offer.
 
         Args:
-            room (str): Chat room ID
+            room: Chat room ID
 
         Returns:
-            Instance of ActiveOfferDetails
+            Instance of OrderDetails
 
         Raises:
             InvalidAction: if there are no open offers in the room

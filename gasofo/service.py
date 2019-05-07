@@ -144,7 +144,7 @@ class ServiceMetaclass(type):
                     raise UnknownPort('{}.{} references undeclared Needs - {}'.format(
                         class_name,
                         attr_name,
-                        ', '.join(sorted(deps_used))
+                        ', '.join(sorted(invalid_ports))
                     ))
 
         unused_needs = needs_ports_defined.difference(all_deps_used)

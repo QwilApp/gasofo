@@ -243,7 +243,7 @@ class Domain(INeed, IProvide):
 
         # replace 'deps' with a ShadowPortArray which serves as proxy to the deps of internal services
         components = service_map.values()
-        component_deps = [c.deps for c in components if isinstance(getattr(c, 'deps', None), PortArray)]
+        component_deps = [c.deps for c in components if isinstance(getattr(c, 'deps', None), (PortArray, ShadowPortArray))]
         discovered = AutoDiscoverConnections(components=components)
         self.deps = ShadowPortArray(arrays=component_deps, ignore_ports=discovered.satisfied_needs())
 

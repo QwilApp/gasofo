@@ -127,6 +127,11 @@ def wire_up_discovered_connections(discovered):
         consumer.set_provider(port_name=port_name, provider=provider)
 
 
-def auto_wire(components):
+def auto_wire(components, expect_all_ports_connected=False):
     discovered = AutoDiscoverConnections(components)
+
+    no_matches = discovered.unsatisfied_needs()
+    if expect_all_ports_connected and no_matches:
+        raise DisconnectedPort('The following ports are disconnected - {}'.format(', '.join(no_matches)))
+
     wire_up_discovered_connections(discovered)

@@ -21,10 +21,13 @@ def add_project_root_as_site_package_dir():
 if __name__ == '__main__':
     add_project_root_as_site_package_dir()
 
-    from example.domains.coffee_orders import CoffeeOrderDomain
-    print ''
-    print CoffeeOrderDomain
-    print "NEEDS:", CoffeeOrderDomain.get_needs()
-    print "PROVIDES", CoffeeOrderDomain.get_provides()
+    from example.app import create_app
 
-    print CoffeeOrderDomain().get_menu_items()
+    app = create_app()
+    print 'MENU', app.get_menu_items()
+
+    app.open_for_orders(requester='Nicolas', room='Qwil')
+    app.make_order(requester='Shawn', room='Qwil', order_item='Flat White')
+    app.make_order(requester='Nicolas', room='Qwil', order_item='Cappucino')
+    app.make_order(requester='Casey', room='Qwil', order_item='Hot Chocolate')
+    print app.close_orders(requester='Nicolas', room='Qwil')

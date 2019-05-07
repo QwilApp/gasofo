@@ -1,7 +1,7 @@
 """
 Simple data types used as shared DTOs.
 """
-from collections import namedtuple
+from typing import NamedTuple, Optional, List
 
 
 __author__ = 'shawn'
@@ -11,8 +11,29 @@ __author__ = 'shawn'
 # TODO: adapters to convert OrderSummary and OrderDetails DTO into chat-friendly text representation
 
 
-OrderSummary = namedtuple('OrderSummary', 'order_id buyer room')
+class OrderSummary(NamedTuple(typename='OrderSummary', fields=[
+    ('order_id', str),
+    ('buyer', str),
+    ('room', str),
+])):
+    __slots__ = ()
 
-OrderDetails = namedtuple('OrderDetails', 'order_id buyer room orders open_ts close_ts')
 
-OrderItem = namedtuple('OrderItem', 'item recipient order_ts')
+class OrderItem(NamedTuple(typename='OrderItem', fields=[
+    ('item', str),
+    ('recipient', str),
+    ('order_ts', int),
+])):
+    __slots__ = ()
+
+
+class OrderDetails(NamedTuple(typename='OrderDetails', fields=[
+    ('order_id', str),
+    ('buyer', str),
+    ('room', str),
+    ('orders', List[OrderItem]),
+    ('open_ts', int),
+    ('close_ts', Optional[int]),
+])):
+    __slots__ = ()
+

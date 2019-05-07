@@ -1,5 +1,5 @@
 from gasofo import Service, provides
-
+from typing import List
 
 __author__ = 'shawn'
 
@@ -8,10 +8,11 @@ class CoffeeMenu(Service):
 
     @provides
     def is_valid_menu_item(self, item_name):
+        # type: (str) -> bool
         """Determines if the given item is in the menu.
 
         Args:
-            item_name (str): Name of item to look up.
+            item_name: Name of item to look up.
 
         Returns:
             bool
@@ -20,11 +21,8 @@ class CoffeeMenu(Service):
 
     @provides
     def get_menu_items(self):
-        """Returns a list of all menu items.
-
-        Returns:
-            list
-        """
+        # type: () -> List[str]
+        """ Returns a list of all menu items. """
         return sorted(self._items())  # return a copy
 
     @staticmethod

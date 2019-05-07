@@ -1,6 +1,8 @@
 from example.shared.exceptions import InvalidAction
+from example.shared.datatypes import OrderDetails
+from typing import Optional, List
 from gasofo import (
-    Needs,
+    NeedsInterface,
     Service,
     provides
 )
@@ -8,21 +10,29 @@ from gasofo import (
 __author__ = 'shawn'
 
 
+class OrderHistoryNeeds(NeedsInterface):
+
+    def db_store_closed_order(self, order_details):
+        # type: (OrderDetails) -> OrderDetails
+        """Stores an order"""
+
+    def db_get_closed_orders_for_room(self, room):
+        # type: (str) -> Optional[List[OrderDetails]]
+        """Returns list of historical orders for given room."""
+
+
 class OrderHistory(Service):
-    deps = Needs([
-        "db_store_order",
-        "db_get_closed_orders_for_room",
-    ])
 
+    deps = OrderHistoryNeeds()
+
+    @provides
     def archive_order(self, order_details):
-        """Archives a closed order.
-
-        Args:
-            order_details (OrderDetails): A closed order.
-        """
+        # type: (OrderDetails) -> OrderDetails
+        """Archives a closed order."""
         if order_details.close_ts is None:
-            raise InvalidAction('Cannot archive open orders.')
-        self.deps.db_store_order(order_details=order_details)
+            raise InvalidAction('Cannot archive open orders')
+        stored = self.deps.db_store_closed_order(order_details=order_details)
+        return stored
 
     @provides
     def get_order_history(self, room):
