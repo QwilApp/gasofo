@@ -23,11 +23,12 @@ def create_app():
         # so as to showcase different options.
         UuidGenerator().as_provider(),
         get_clock_provider(),
-        DictStore.as_provider('get_dict_store_for_orders'),
-        DictStore.as_provider('get_dict_store_for_order_history'),
+        DictStore.as_provider(port_name='get_dict_store_for_orders'),
+        DictStore.as_provider(port_name='get_dict_store_for_order_history'),
     ]
 
-    auto_wire([app] + edge_dependencies, expect_all_ports_connected=True)  # raises if there are disconnected ports
+    # raises if there are disconnected ports
+    auto_wire(components=[app] + edge_dependencies, expect_all_ports_connected=True)
 
     return app
 

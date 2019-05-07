@@ -37,6 +37,10 @@ class GasofoTestCase(TestCase):
         self.last_rc = self.service.get_provider_func(port_called)(**kwargs)
         return self.last_rc
 
+    def call(self, port, **kwargs):
+        """Alias for self.WHEN. Used when we're not testing in the GIVEN-WHEN-THEN style."""
+        return self.WHEN(port_called=port, **kwargs)
+
     def THEN(self, expected_output, is_sequence=False, order_matters=False):
         if self.last_rc is self.UNSPECIFIED:
             self.fail('No output recorded. Was self.WHEN(..) called?')

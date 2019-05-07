@@ -36,4 +36,3 @@ class OrderDetails(NamedTuple(typename='OrderDetails', fields=[
     ('close_ts', Optional[int]),
 ])):
     __slots__ = ()
-

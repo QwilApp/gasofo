@@ -240,3 +240,5 @@ class ShadowPortArrayTest(TestCase):
     def test_shadow_does_not_inherit_ignored_ports(self):
         shadow = ShadowPortArray([self.array_a, self.array_b], ignore_ports=['in_both', 'also_a_only', 'fluff'])
         self.assertItemsEqual(['a_only', 'b_only'], shadow.get_ports())
+
+    # TODO: Test ShadowPortArray of ShadowPortArray (e.g. when we have nested domains

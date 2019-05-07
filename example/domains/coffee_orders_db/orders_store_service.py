@@ -69,7 +69,7 @@ class OrdersStore(Service):
         except KeyError:
             raise InvalidAction('No open orders for room ' + room)
 
-        closed_order = order._replace(close_ts=self.deps.get_current_ts())
+        closed_order = order._replace(close_ts=self.deps.get_current_ts(), orders=tuple(order.orders))
         return closed_order
 
     @provides_with(name='db_get_active_order')
@@ -116,4 +116,3 @@ class OrdersStore(Service):
     @staticmethod
     def _extract_summary(order_details):
         return OrderSummary(order_id=order_details.order_id, buyer=order_details.buyer, room=order_details.room)
-
