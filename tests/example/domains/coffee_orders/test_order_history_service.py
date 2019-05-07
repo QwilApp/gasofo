@@ -118,16 +118,3 @@ class OrderHistoryServiceTestWithoutFramework(TestCase):
         # THEN empty list returned
         self.assertSequenceEqual([], output)
         provider.db_get_closed_orders_for_room.assert_called_once_with(room='room_x')
-
-    @staticmethod
-    def _make_order(order_id, is_open_order=False, **kwargs):
-        order = OrderDetails(
-            order_id=order_id,
-            buyer='John Buyer',
-            room='Awesome Chatroom',
-            order_ts=10000,
-            close_ts=None if is_open_order else 20000,
-        )
-        if kwargs:
-            order = order._replace(**kwargs)
-        return order

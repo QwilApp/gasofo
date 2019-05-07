@@ -10,6 +10,7 @@ from gasofo import (
 
 
 class App(Domain):
+    """This will encapsulate the business domain without any of the edge resources."""
     __services__ = [CoffeeOrderDomain, CoffeeOrderDBInterface]
     __provides__ = CoffeeOrderDomain.get_provides()  # export whatever this domain exports
 
@@ -32,4 +33,4 @@ def create_app():
 
 
 if __name__ == '__main__':
-    create_app()
+    create_app()  # Just so we can this module to debug wiring

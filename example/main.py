@@ -25,9 +25,8 @@ if __name__ == '__main__':
 
     app = create_app()
     print 'MENU', app.get_menu_items()
-
-    app.open_for_orders(requester='Nicolas', room='Qwil')
-    app.make_order(requester='Shawn', room='Qwil', order_item='Flat White')
-    app.make_order(requester='Nicolas', room='Qwil', order_item='Cappucino')
-    app.make_order(requester='Casey', room='Qwil', order_item='Hot Chocolate')
+    print app.open_for_orders(requester='Nicolas', room='Qwil')
+    print app.make_order(requester='Shawn', room='Qwil', order_item='Flat White')
+    print app.make_order(requester='Nicolas', room='Qwil', order_item='Cappucino')
+    print app.make_order(requester='Casey', room='Qwil', order_item='Hot Chocolate')
     print app.close_orders(requester='Nicolas', room='Qwil')
