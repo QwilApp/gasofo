@@ -32,7 +32,7 @@ class MyService(Service):
     @provides
     def my_feature(self, x):
         data = self.deps.some_data()  # needs are accessed via self.deps.<port_name>
-        more_data = self.another_service(value=x)
+        more_data = self.deps.another_service(value=x)
         return data + more_data
 ```
 
@@ -90,7 +90,7 @@ class MyService(Service):
     @provides
     def my_feature(self, x):
         data = self.deps.some_data()  # needs are accessed via self.deps.<port_name>
-        more_data = self.another_service(value=x)
+        more_data = self.deps.another_service(value=x)
         return data + more_data
 ```
 
@@ -127,15 +127,58 @@ The mismatch between the published port name and actual method name could cause 
 
 We do not currently use these flags, so we will hold off on the docs for now :)
 
+
 ## Defining Domains
 
-...
+Domains are a collection of components (services or other domains) grouped together and encapsulated to form a higher 
+level business component. A subset of ports from the containing components are published as the Provides ports of the 
+domain, and all Needs ports of components that are not fulfilled internally by matching Provides are exposed as the
+Needs of the Domain.
 
-To cover:
-* `__services__` and `__provides__`
-* `AutoProvide()`
-* (to be implemented) argspec of domain methods
-* "Nestability"
+```python
+from gasofo import Domain
+from myproject.services import MyService, AnotherService
+
+class MyDomain(Domain):
+    __services__ = [MyService, AnotherService]  # Components contained in this domain
+    __provides__ = ['get_blah', 'do_something_else']  # subset of ports from services defined in __services
+```
+
+`__services__` should be defined as a list of components (Services or Domains) classes, not instances. An instance of 
+each of these components will be instantiated when the Domain is instantiated, and the internal ports that have 
+matching names will be automatically wired together.
+
+The Domain class should not contain any other attributes, methods, or a constructor.
+
+As with services, ports of a domain can be queried by calling `get_needs()` and `get_provides()` on the domain class 
+or instance.
+
+Upon instantiation, proxy methods are dynamically bound to the domain object so the Provides ports can also be accessed
+as a method call i.e. `my_domain_instance.my_port(...)`. This is  handy but is not currently very
+IDE friendly -- dynamically added methods and the underlying argspec of the port are not known to IDES so code
+suggestion and type checking will not work. (We may address this at some point if we find ourselves needing 
+to access these methods on a regular basis.)
+
+### Automatically registering Provides ports for domains
+
+For domains with lots of internal component and lots of intended Provides ports, manually defining them and keeping
+them up-to-date can be a chore.
+
+For case like this, use `AutoProvide`:
+
+```python
+from gasofo import Domain, AutoProvide
+from myproject.services import MyService, AnotherService
+
+class MyDomain(Domain):
+    __services__ = [MyService, AnotherService]  # Components contained in this domain
+    __provides__ = AutoProvide(pattern='db_.*')  # auto export all ports that start with db_
+```
+
+`Autoprovide` allows a convenient way to publish all Provides ports that matches the given regex pattern. If a pattern,
+is not provided, **all** ports. Please use this sparingly, and always double-check that you are not exposing more than
+intended by querying `MyDomain.get_provides()`.
+
 
 ## Wiring up an application
 
