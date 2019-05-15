@@ -182,15 +182,103 @@ intended by querying `MyDomain.get_provides()`.
 
 ## Wiring up an application
 
-...
+In the simplest of use cases, one can manually hook up a Needs port by calling 
+`service_instance.deps.connect_port(port_name='blah', func=some_callable)`. Note that this is an operation on the
+ `service.deps` and is connectable to anything callable. Working at this level can get unwieldy once we have more than 
+ a handful of ports in an application.
+ 
+It is therefore recommended that the wiring up if ports is done at a higher level, i.e. at the component level. For
+example:
 
-To cover:
-* Framework does not stop you from manually connecting ports to any other ports. Project convention (e.g. globally 
-  unique port names to denote intent and compatibility) makes it easier to reason about ports and allow for auto-wiring
-  of Domains, Services, Adapters, Providers etc into a fully functioning application.
-* manual connection
-* auto wiring
+```python
+c1 = MyComponent()  # This could be a Service or Domain 
+c2 = MyProvider()  # Anything that implements IProvide, e.g. Service, Domain, or some custom implementation
 
+c1.set_provider(port_name='blah', provider=c2)  # c1.deps.blah  ---> c2.blah
+```
+
+The pre-requisite here is that the provider's port name has to match the port name of the consumer. This we believe is 
+a good thing -- having globally unique port names within the application to denote intent and compatibility makes it
+easier to reason about ports and allow for auto-wiring.
+
+### Auto-wiring
+
+Speaking of auto-wiring, we mentioned about that on instantiation domains would automatically instantiate all
+underlying services and auto-wire them based on port names. You can also do the same for a components you instantiate
+yourself using `gasofo.auto_wire()`. This would typically be how you'd wire up a full application.
+
+```python
+from gasofo import auto_wire, Domain
+from myapp.domains import *
+from myapp.adapters import *
+
+class MyAwesomeApp(Domain):  # encapsulate all my app domain into a single domain
+    __services__ = [DomainA, DomainB, DomainC, DomainD]
+    __provides__ = LIST_OF_PORTS_TO_EXPOSE_AT_APP_LEVEL
+    
+def get_app():
+    app = MyAwesomeApp()
+    dependencies = [
+        my_db_provider(),
+        redis_provider(),
+        logging_provider(),
+    ]
+    
+    auto_wire([app] + dependencies, expect_all_ports_connected=True)  # raise if there are unfulfilled ports
+    return app
+``` 
+
+### Convenience functions for creating providers
+
+As mentioned above, the recommended approach to wiring is to do so at the component level. This means that any callable
+we wish to include in the wiring needs to implement the `gasofo.IProvide` interface.
+
+This isn't hard to do, but involves unnecessary boiler plate to wrap them up in a compatible class structure.
+
+For cases like this, you can use `object_as_provider` or `func_as_provider` to automatically wrap an object or function
+within a wrapper that exposes the `IProvide` interface.
+
+Some examples:
+
+```python
+from gasofo import func_as_provider
+import hashlib
+
+md5_provider = func_as_provider(func=hashlib.md5, port='get_md5_hash')  # creates provider which provides "get_md5_hash"
+```
+
+```python
+from gasofo import object_as_provider
+
+class MyStack(object):
+    def __init__(self):
+        self.stack = []
+        
+    def push_to_stack(self, value):
+        self.stack.append(value)
+        
+    def pop_from_stack(self):
+        return self.stack.pop()
+        
+stack_provider = object_as_provider(provider=MyStack(), ports=['push_to_stack', 'pop_from_stack'])
+```
+
+```python
+from gasofo import object_as_provider
+
+# we can also expose class methods and static methods as ports
+class Serializers(object):
+    
+    @classmethod 
+    def serialise_to_json(cls, payload):
+        # ...
+        
+    @staticmethod
+    def serialise_to_xml(payload):
+        # ...
+        
+ serialisation_provider = object_as_provider(provider=Serializers, ports=['serialise_to_json', 'serialise_to_xml'])
+```
 
 # Visualisation
 
