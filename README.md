@@ -280,31 +280,78 @@ class Serializers(object):
  serialisation_provider = object_as_provider(provider=Serializers, ports=['serialise_to_json', 'serialise_to_xml'])
 ```
 
+
+## Adapters
+
+Adapters allows us to inject logic between a port and the provider of that dependency. One way to look at it is that
+services should focus on business logic and accesses a port to get data or perform some action. It should not 
+concern itself with how that dependency is provided or what the structure is at the origin, and instead leave it up to
+adapters to handle the more mechanical operations like transport, serialisation/deserialisation, payload transformation, etc.
+
+Take for instance a service that provides a certain dataset, and several other services that need that dataset but in 
+different formats. Instead of having multiple providers ports for the different formats, we could have all consumers
+connect to the same provider but each with a different adapter to handle reformatting.
+
+Another example would be when moving a service to a different process - we could simply introduce adapters that make 
+REST or gRPC calls to connections that now span processes with zero changes to the services themselves.
+
+In Qwil we use two kinds of adapters:
+1. Service-based adapters
+2. Injected adapters
+
+
+### Service-based adapters
+
+Service based adapters are essentially standard providers i.e. objects that expose INeed and IProvide interfaces. They 
+are technically no different from Services except that they contain no business login and instead server as a bridge
+between two ports.
+
+By ensuring that we use globally unique port names throughout the application, and guaranteeing that ports with matching
+names are compatible, we can simply throw in service-based adapters with the corresponding names to handle 
+incompatibilities and let the auto-wiring process hook them up.
+
+For example, say Service A providers port X and this data is needed by service B and C. However, service C needs the
+data in a slightly different format. Instead of C declaring a need for X pollute the business logic with data
+transformation, it should declare the needs with an different port name and rely on an adapter to do the reformatting.
+
+```
+    +---------+                    
+    |         |
+    |    B    X -------------------------------+                                        
+    |         |                                |      +---------+
+    +---------+                                |      |         |
+                                               +----> X    A    | 
+                                               |      |         |
+    +---------+          +---------------+     |      +---------+
+    |         |          |               |     |
+    |    C    Xy -----> Xy   MyAdapter   X ----+
+    |         |          |               |
+    +---------+          +---------------+  
+
+```
+
+### Injected adapters
+
+(NOT YET IMPLEMENTED)
+
+Injected adapters are call-through callables that are injected when a ports are being connected. This will be done 
+at wiring time.
+
+
+Injection can be targetted (i.e. inject between connections for specific ports) or app-wide (injected in all 
+connections). The latter will be used mainly in a debug/dev scenario for instrumenting port calls e.g. for real-time
+sequence diagrams, performance analysis, detailed logging.
+
 # Visualisation
+
+Visualisation is important as it will allow us to reason about the application and higher levels of abstraction, and
+to visually confirm that components are indeed wired the way we intended.
 
 (NOT YET IMPLEMENTED)
 
 * Domain visualisation (no need to instantiate services/domains)
 * App visualisation (Domains/Services are instantiated and wired up)
 * Real-time sequence diagrams
-
-## Implementing Providers
-
-
-(stuff that don't meet requirements of a Service,  but implements `IProvide`. Edge stuff, e.g. dbs)
-
-* func_as_provider
-* object_as_provider
-
-## Adapters
-
-...
-
-To cover:
-
-* Service-based adapters (note usage of globally unique port names to denote compatibilty of interfaces and exposing the 
-  need of service-based adapters)  
-* (to be implemented) Injected adapters - one that is injected between the connection of a specific port
 
 
 ## Testing 
