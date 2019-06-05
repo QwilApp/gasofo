@@ -389,18 +389,20 @@ We could test this as such:
 class ClockTest(unittest.TestCase):
 
     def test_tick_returns_formatted_time(self):
-        # prepare provider that injects test data
+        clock_service = Clock()
+        
+        # GIVEN the current date time is datetime.datetime(2018, 9, 20, 14, 55)
         datetime_provider = func_as_provider(
             func=lambda: datetime.datetime(2018, 9, 20, 14, 55),
             port='get_current_time'
         )
-
-        # set up service and attach port
-        clock_service = Clock()
         clock_service.set_provider('get_current_time', datetime_provider)
 
-        # call and assert
-        self.assertEqual('2018-09-20 14:55', clock_service.tick())
+        # WHEN tick() is called
+        result = clock_service.tick()
+        
+        # THEN '2018-09-20 14:55' is returned
+        self.assertEqual('2018-09-20 14:55', result)
 ```
 
 This will work and is reasonably clean, but does require quite a bit of boilerplate code. We can simplify this further
@@ -415,15 +417,18 @@ the test above could be rewritten as:
 from gasofo.testing import attach_mock_provider
 
 class ClockTest(unittest.TestCase):
-    def test_tick_returns_formatted_time(self):
-        # set up service and attach port
         clock_service = Clock()
+        
+        # GIVEN the current date time is datetime.datetime(2018, 9, 20, 14, 55)
         attach_mock_provider(consumer=clock_service, ports={
             'get_current_time': datetime.datetime(2018, 9, 20, 14, 55),  # return value when port is called
         })
-    
-        # call and assert
-        self.assertEqual('2018-09-20 14:55', clock_service.tick())
+
+        # WHEN tick() is called
+        result = clock_service.tick()
+        
+        # THEN '2018-09-20 14:55' is returned
+        self.assertEqual('2018-09-20 14:55', result)
 ```
 
 `attach_mock_provider` generates a provider object which offers ports as defined in the `ports` argument, then attaches 
