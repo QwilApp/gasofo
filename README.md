@@ -356,23 +356,155 @@ to visually confirm that components are indeed wired the way we intended.
 
 ## Testing 
 
-...
+When done correctly, apps and components written with Gasofo are very suited to the the 
+[Arrange-Act-Assert](http://wiki.c2.com/?ArrangeActAssert) / 
+[Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html) style of 
+testing - since the components are stateless the "Givens" can be defined by simply setting up the Needs ports and the 
+"Whens" are calls to Provides ports.
 
-To cover:
-* ad-hoc providers
-* mock as providers
-* (recommended) Test Adapters which does argspec checks for free. 
-* 
+We should never need to `mock.patch` anything as long as dependencies are called out correctly as ports. 
+
+See `./tests/example/` for some examples of how to test components written with gasofo.
+
+### The basics
+
+For each test scenario, we should attach only Needs ports that are explicitly needed by the behaviour under test. All 
+other ports should remain unattached to ensure that tests will fail if an unexpected dependency is accessed.
+
+Attaching a port in a test can be done manually, i.e. preparing a provider and assigning it to the service port. For
+example, say we have a Clock service defined as:
+
+```python
+class Clock(Service):
+    deps = Needs(['get_current_time'])
+
+    @provides
+    def tick(self):
+        dt = self.deps.get_current_time()
+        return dt.strftime('%Y-%m-%d %H:%M')
+```
+
+We could test this as such:
+```python
+class ClockTest(unittest.TestCase):
+
+    def test_tick_returns_formatted_time(self):
+        # prepare provider that injects test data
+        datetime_provider = func_as_provider(
+            func=lambda: datetime.datetime(2018, 9, 20, 14, 55),
+            port='get_current_time'
+        )
+
+        # set up service and attach port
+        clock_service = Clock()
+        clock_service.set_provider('get_current_time', datetime_provider)
+
+        # call and assert
+        self.assertEqual('2018-09-20 14:55', clock_service.tick())
+```
+
+This will work and is reasonably clean, but does require quite a bit of boilerplate code. We can simplify this further
+by using `gasofo.testing.attach_mock_provider`.
+
+### `gasofo.testing.attach_mock_provider`
+
+This is a handy way for generating a provider which can satisfy one or more ports of a service. Using this helper, 
+the test above could be rewritten as:
+
+```python
+from gasofo.testing import attach_mock_provider
+
+class ClockTest(unittest.TestCase):
+    def test_tick_returns_formatted_time(self):
+        # set up service and attach port
+        clock_service = Clock()
+        attach_mock_provider(consumer=clock_service, ports={
+            'get_current_time': datetime.datetime(2018, 9, 20, 14, 55),  # return value when port is called
+        })
+    
+        # call and assert
+        self.assertEqual('2018-09-20 14:55', clock_service.tick())
+```
+
+`attach_mock_provider` generates a provider object which offers ports as defined in the `ports` argument, then attaches 
+the consuming component to this provider. Any ports on the consumer that is not defined in the call will remain 
+unattached.
+
+`attach_mock_provider` also returns the provider object the generated ports accessible as attributes on this object. 
+These attributes are instances of `mock.Mock` objects. This allows us to do more elaborate test setup, e.g.
+
+```python
+provider = attach_mock_provider(consumer=some_service, ports=['get_a', 'get_b'])  
+provider.get_a.return_value = datetime.datetime(2018, 9, 20, 14, 55)  # can set .return_value as usual
+provider.get_b.side_effect = {'a':1, 'b'=2}.get   # get_b(x) calls {'a':1, 'b'=2}.get(x)
+
+some_service.do_blah()
+
+provider.get_b.assert_called_once_with(2)  # essentially, this can be treated like any a standard mock.Mock object
+```
+
+Note that the `ports` argument above is declared as a list instead of a dict. This does the same thing except that the
+`return_value` of the mock is not set by default.
+
+An extra benefit to using `attach_mock_provider` is that if the component Needs are defined as a `NeedsInterface` 
+instance, then the underling mock objects for the ports are created using `mock.create_autospec` and will assert that 
+all calls to it abide by the argspec of the needs port.
+
+### Given-When-Then
+
+To write even more succinct tests, one can also use the `GasofoTestCase` base class wraps away most of the test setup
+and provides the ability to construct tests as a series of GIVEN-WHEN-THEN calls.
+
+For example, to test the `Clock` service defined above
+```python
+from gasofo.testing import GasofoTestCase
+
+class ClockTest(GasofoTestCase):
+    SERVICE_CLASS = Clock  # service under test
+
+    def test_tick_returns_formatted_time(self):
+        self.GIVEN(needs_port='get_current_time', returns=datetime.datetime(2018, 9, 20, 14, 55))
+        self.WHEN(port_called='tick')  # this also takes additional kwargs that will all be passed to the port call
+        self.THEN(expected_output='2018-09-20 14:55')
+```
+
+It is worth noting that the `self.GIVEN` call returns the created mock object while the `self.WHEN` call returns the 
+actual output of the port call.
+
+Do also explore the other arguments support by `self.GIVEN` and `self.THEN` as they provide means for declaring more
+complex requirements, e.g. setting up side effects for GIVENs or specifying that we do not care about the order of the 
+expected output.
+
+`GasofoTestCase` also provides assertions methods to assert that the needs ports are called as expected. This can be a
+simple assertion, or a more involved assertion that the dictates the order in which the ports needs to be called. For
+example:
+
+```python
+# example taken from tests/example/domains/coffee_orders/test_orders_service.py
+
+self.assert_ports_called(calls=[
+    GasofoTestCase.PortCalled(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
+    GasofoTestCase.PortCalled(port='is_valid_menu_item', kwargs={'item_name': 'Flat White'}),
+    GasofoTestCase.PortCalled(port='db_add_order_item', kwargs={
+        'room': 'Le trou des chouettes',
+        'item': 'Flat White',
+        'recipient': 'Shawn',
+    }),
+])
+```
+
+For more examples, see `tests/example/domains/coffee_orders/test_order_history_service.py`. Both the tests classes 
+defined in this file -- `OrderHistoryServiceTestSimplified` and `OrderHistoryServiceTestWithoutFramework` -- are 
+equivalent but with the latter implemented without `GasofoTestCase`.
 
 
-# Implementation Details
+###  Higher level testing i.e. domains, app, integration, acceptance testing
 
-...
+Writing tests for domains is identical to testing services since they all implement the same interfaces. 
 
-To cover:
+Testing at the app level, as well as integration/acceptance testing can also be expressed in similar forms except that
+the setup for the tests would be more elaborate. For example, one might wire up the full application without the edge
+dependencies, then treat the whole mesh as a single domain. We could then use the same tooling as descibed above to 
+implement our acceptance tests or integration tests.
 
-* Discuss the layers of abstraction:
-    1. (lowest level) PortArray
-    2. INeed and IProvide interface + wiring
-        * Conceptual connectivity vs actual execution hops. (show traceback of a call?)
-    3. Service and Domain definition
+See `/Users/shawn/work/gasofo/tests/example/domains/test_app.py` for a simple example of how this might be achieved.
