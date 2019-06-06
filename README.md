@@ -456,7 +456,7 @@ provider.get_b.side_effect = {'a':1, 'b'=2}.get   # get_b(x) calls {'a':1, 'b'=2
 
 some_service.do_blah()
 
-provider.get_b.assert_called_once_with(2)  # essentially, this can be treated like any a standard mock.Mock object
+provider.get_b.assert_called_once_with(2)  # can be treated like any a standard mock.Mock object
 ```
 
 Note that the `ports` argument above is declared as a list instead of a dict. This does the same thing except that the
@@ -480,7 +480,7 @@ class ClockTest(GasofoTestCase):
 
     def test_tick_returns_formatted_time(self):
         self.GIVEN(needs_port='get_current_time', returns=datetime.datetime(2018, 9, 20, 14, 55))
-        self.WHEN(port_called='tick')  # this also takes additional kwargs that will all be passed to the port call
+        self.WHEN(port_called='tick')  # this also takes kwargs which will all be passed to the port call
         self.THEN(expected_output='2018-09-20 14:55')
 ```
 
