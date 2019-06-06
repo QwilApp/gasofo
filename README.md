@@ -322,7 +322,7 @@ names are compatible, we can simply throw in service-based adapters with the cor
 incompatibilities and let the auto-wiring process hook them up.
 
 For example, say Service A providers port X and this data is needed by service B and C. However, service C needs the
-data in a slightly different format. Instead of C declaring a need for X pollute the business logic with data
+data in a slightly different format. Instead of C declaring a need for X and then pollute its business logic with data
 transformation, it should declare the needs with an different port name and rely on an adapter to do the reformatting.
 
 ```
@@ -373,7 +373,8 @@ When done correctly, apps and components written with Gasofo are very suited to 
 testing - since the components are stateless the "Givens" can be defined by simply setting up the Needs ports and the 
 "Whens" are calls to Provides ports.
 
-We should never need to `mock.patch` anything as long as dependencies are called out correctly as ports. 
+We should never need to `mock.patch` anything as long as all dependencies are correctly declared as ports rather than
+accessed directly from within the service. 
 
 See `./tests/example/` for some examples of how to test components written with gasofo.
 
@@ -446,8 +447,8 @@ class ClockTest(unittest.TestCase):
 the consuming component to this provider. Any ports on the consumer that is not defined in the call will remain 
 unattached.
 
-`attach_mock_provider` also returns the provider object the generated ports accessible as attributes on this object. 
-These attributes are instances of `mock.Mock` objects. This allows us to do more elaborate test setup, e.g.
+`attach_mock_provider` also returns the provider object where all generated mock ports are accessible as attributes on 
+this object. These attributes are instances of `mock.Mock` objects which allows us to do more elaborate test setup, e.g.
 
 ```python
 provider = attach_mock_provider(consumer=some_service, ports=['get_a', 'get_b'])  
@@ -463,8 +464,10 @@ Note that the `ports` argument above is declared as a list instead of a dict. Th
 `return_value` of the mock is not set by default.
 
 An extra benefit to using `attach_mock_provider` is that if the component Needs are defined as a `NeedsInterface` 
-instance, then the underling mock objects for the ports are created using `mock.create_autospec` and will assert that 
-all calls to it abide by the argspec of the needs port.
+instance, then the underling mock objects for the ports are created using `mock.create_autospec`. This will assert that 
+all calls to it abide by the argspec of the needs port, thereby validating that service methods are accessing deps
+as expected. _(The only thing missing for now to complete this picture is wiring-time assertion that connected needs and 
+provides port have compatible argspecs)_.
 
 ### Given-When-Then
 
@@ -492,8 +495,8 @@ complex requirements, e.g. setting up side effects for GIVENs or specifying that
 expected output.
 
 `GasofoTestCase` also provides assertions methods to assert that the needs ports are called as expected. This can be a
-simple assertion, or a more involved assertion that the dictates the order in which the ports needs to be called. For
-example:
+simple assertion, or a more involved assertion that the dictates the order in which the needs ports must be 
+called. For example:
 
 ```python
 # example taken from tests/example/domains/coffee_orders/test_orders_service.py
@@ -520,7 +523,7 @@ Writing tests for domains is identical to testing services since they all implem
 
 Testing at the app level, as well as integration/acceptance testing can also be expressed in similar forms except that
 the setup for the tests would be more elaborate. For example, one might wire up the full application without the edge
-dependencies, then treat the whole mesh as a single domain. We could then use the same tooling as descibed above to 
+dependencies, then treat the whole mesh as a single domain. We could then use the same tooling as described above to 
 implement our acceptance tests or integration tests.
 
 See `/Users/shawn/work/gasofo/tests/example/domains/test_app.py` for a simple example of how this might be achieved.
