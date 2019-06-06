@@ -36,7 +36,7 @@ class MyService(Service):
         return data + more_data
 ```
 
-Here we defined a the service `MyService` with a couple of Needs ports and a single Provides port named 
+Here we defined the service `MyService` with a couple of Needs ports and a single Provides port named 
 "my_feature". 
 
 Methods on instances of this class can be called just like a regular class, but only the ones tagged 
@@ -104,6 +104,13 @@ Benefits of using `NeedsInterface` over `Needs([...])`:
 The type hinting is optional as far as Gasofo is concerned, but we encourage using it. These ports are only wired to 
 concrete implementation at run-time, so the type hints is the only reliable way for your IDE infer the type of the
 arguments and return values. That extra effort is worth it!
+
+_**Notes on code navigation in PyCharm:** The usual 'Find Usages' and 'Go To Declaration' features would work as usual
+but this will only allow you to jump between the deps usage and the stubs methods in the NeedsInterface class. The 
+provider implementation is not statically associated hence not discoverable by PyCharm. The easiest way to locate a
+matching provider port would be to use the 'Go to Symbol' feature (Navigate > Symbol) will find all definitions of a 
+symbol. We recommended creating a custom keymap shortcut for this -- I use super+mouse right click which allows me to 
+quicky click on any deps or needs stub and locate other definitions.'_
 
 ### Using `@provides_with`
 
@@ -175,9 +182,9 @@ class MyDomain(Domain):
     __provides__ = AutoProvide(pattern='db_.*')  # auto export all ports that start with db_
 ```
 
-`Autoprovide` allows a convenient way to publish all Provides ports that matches the given regex pattern. If a pattern,
-is not provided, **all** ports. Please use this sparingly, and always double-check that you are not exposing more than
-intended by querying `MyDomain.get_provides()`.
+`Autoprovide` allows a convenient way to publish all Provides ports that matches the given regex pattern. If a pattern
+is not provided, **all** provides ports of internal services are exposed. Please use this sparingly, and always 
+double-check that you are not exposing more than intended by querying `MyDomain.get_provides()`.
 
 
 ## Wiring up an application
@@ -203,9 +210,9 @@ easier to reason about ports and allow for auto-wiring.
 
 ### Auto-wiring
 
-Speaking of auto-wiring, we mentioned about that on instantiation domains would automatically instantiate all
-underlying services and auto-wire them based on port names. You can also do the same for a components you instantiate
-yourself using `gasofo.auto_wire()`. This would typically be how you'd wire up a full application.
+It was mentioned above that, on instantiation, domains will automatically instantiate all underlying services and 
+auto-wire them based on port names. You can use `gasofo.auto_wire()` to do the same for components you instantiate 
+yourself using. This would typically be how you'd wire up a full application.
 
 ```python
 from gasofo import auto_wire, Domain
@@ -244,7 +251,8 @@ Some examples:
 from gasofo import func_as_provider
 import hashlib
 
-md5_provider = func_as_provider(func=hashlib.md5, port='get_md5_hash')  # creates provider which provides "get_md5_hash"
+# creates provider which provides "get_md5_hash"
+md5_provider = func_as_provider(func=hashlib.md5, port='get_md5_hash')  
 ```
 
 ```python
@@ -277,7 +285,10 @@ class Serializers(object):
     def serialise_to_xml(payload):
         # ...
         
- serialisation_provider = object_as_provider(provider=Serializers, ports=['serialise_to_json', 'serialise_to_xml'])
+serialisation_provider = object_as_provider(provider=Serializers, ports=[
+    'serialise_to_json', 
+    'serialise_to_xml',
+])
 ```
 
 
