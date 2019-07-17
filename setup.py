@@ -9,13 +9,13 @@ packages = setuptools.find_packages(include=["gasofo*"])
 
 setuptools.setup(
     name="gasofo",
-    version="1.0.0",
+    version="1.0.1",
     author="Shawn Chin",
     author_email="shawn@qwil.io",
     description="Qwil's hexagonal architecture framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.tooling-dev.private.qwil.network/open/gasofo",
+    url="https://github.com/QwilApp/gasofo",
     packages=packages,
     install_requires=[],
     classifiers=[
