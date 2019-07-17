@@ -12,7 +12,7 @@ See `./example` for an example of how gasofo can be used to build up an app.
 ## Installing Gasofo
 
 
-`pip install git+https://gitlab.tooling-dev.private.qwil.network/open/gasofo@v1.0.0`
+`pip install gasofo`
 
 
 ## Defining Services
