@@ -17,7 +17,7 @@ def attach_mock_provider(consumer, ports):
 
     invalid_ports = set(ports).difference(consumer.get_needs())
     if invalid_ports:
-        raise UnknownPort('Invalid ports - {}'.format(consumer, ', '.join(invalid_ports)))
+        raise UnknownPort('Invalid ports for {} - {}'.format(consumer, ', '.join(invalid_ports)))
 
     # create the underlying object that will hold all the mock functions for the specified ports
     template_funcs = get_template_funcs(service=consumer)

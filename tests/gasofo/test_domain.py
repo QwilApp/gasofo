@@ -169,7 +169,8 @@ class DomainDefinitionTest(TestCase):
         class Useless(object):
             pass
 
-        msg = 'Component classes defined in BadDomain.__services__ should inherit be subclass of IProvide'
+        msg = ('Component classes defined in BadDomain.__services__ should be subclasses of IProvide. '
+               'Instead, got class Useless with class hierarchy "Useless -> object"')
         with self.assertRaisesRegexp(DomainDefinitionError, msg):
             class BadDomain(Domain):
                 __services__ = [Useless]

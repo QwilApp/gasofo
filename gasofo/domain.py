@@ -181,8 +181,13 @@ class DomainMetaclass(type):
                 service_class,
             ))
         if not issubclass(service_class, IProvide):
-            msg = 'Component classes defined in {}.__services__ should inherit be subclass of IProvide'.format(name)
-            raise DomainDefinitionError(msg)
+            msg = 'Component classes defined in {}.__services__ should be subclasses of IProvide. '
+            msg += 'Instead, got class {} with class hierarchy "{}"'
+            raise DomainDefinitionError(msg.format(
+                name,
+                service_class.__name__,
+                ' -> '.join(c.__name__ for c in service_class.__mro__))
+            )
 
     @classmethod
     def validate_overridden_attributes(mcs, attrs, class_name):
