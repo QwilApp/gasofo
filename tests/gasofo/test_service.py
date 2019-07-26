@@ -102,6 +102,20 @@ class ServiceDefinitionTest(TestCase):
             def _fluff(self):
                 return self.deps.fluff()
 
+    def test_service_deps_usage_analysis_does_not_take_into_account_comments(self):
+
+        class MyService(Service):  # Should not raise
+            deps = Needs(['stuff'])
+
+            @provides
+            def provider_a(self):
+                return self.deps.stuff() + self._fluff()
+
+            def _fluff(self):
+                # intentional comments. do not remove.
+                # self.deps.fluff()
+                return 10  # + self.deps.gruff()
+
     def test_service_with_multiple_unused_deps(self):
 
         with self.assertRaisesRegexp(UnusedPort, 'MyService has unused Needs - acorn, fluff'):

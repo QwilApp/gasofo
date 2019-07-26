@@ -1,6 +1,7 @@
 import inspect
 import re
 import textwrap
+from shlex import shlex
 
 from gasofo.discoverable import (
     INeed,
@@ -154,9 +155,15 @@ class ServiceMetaclass(type):
 
 def parse_deps_used(method):
     # Start simple for now. Match using regex instead of walking parsed ast tree.
-    method_source = textwrap.dedent(inspect.getsource(method))
+    method_source = discard_comments_and_newlines(textwrap.dedent(inspect.getsource(method)))
     deps_used = re.findall(r'self\.deps\.(.+?)\(', method_source)
     return frozenset(deps_used)
+
+
+def discard_comments_and_newlines(source):
+    lex = shlex(source)
+    lex.whitespace = '\n'
+    return ''.join(lex)
 
 
 class Service(INeed, IProvide):
