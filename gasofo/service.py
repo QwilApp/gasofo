@@ -156,12 +156,12 @@ class ServiceMetaclass(type):
 def parse_deps_used(method):
     # Start simple for now. Match using regex instead of walking parsed ast tree.
     method_source = discard_comments_and_newlines(textwrap.dedent(inspect.getsource(method)))
-    deps_used = re.findall(r'self\.deps\.(.+?)\(', method_source)
+    deps_used = re.findall(r'self\.deps\.(.+?)[\(,]', method_source)
     return frozenset(deps_used)
 
 
 def discard_comments_and_newlines(source):
-    lex = shlex(source)
+    lex = shlex(source, posix=True)
     lex.whitespace = '\n'
     return ''.join(lex)
 
