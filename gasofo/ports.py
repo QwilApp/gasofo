@@ -20,6 +20,7 @@ RESERVED_PORT_NAMES = frozenset((
     'add_port',
     'get_ports',
     'replicate',
+    'is_disconnected_port',
     'disconnect_port',
     'connect_port',
     'get_needs',
@@ -61,7 +62,15 @@ class PortArray(object):
 
     @staticmethod
     def _get_placeholder_func_for_disconnected_port(port_name):
-        return partial(not_yet_connected, port_name)
+        func = partial(not_yet_connected, port_name)
+        setattr(func, 'disconnected', True)  # used to identify if func is a placeholder for disconnected ports
+        return func
+
+    def is_disconnected_port(self, port_name):
+        if port_name not in self._ports:
+            raise UnknownPort('"{}" is not a valid port'.format(port_name))
+        port = getattr(self, port_name)
+        return getattr(port, 'disconnected', False)
 
     @classmethod
     def replicate(cls, another_port_array):

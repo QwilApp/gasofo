@@ -165,6 +165,20 @@ class PortArrayTests(TestCase):
         with self.assertRaisesRegexp(DisconnectedPort, 'Port "world" has not been connected'):
             new_ports.world()
 
+    def test_identification_of_disconnected_port(self):
+        self.ports.add_port('hello')
+        self.assertTrue(self.ports.is_disconnected_port('hello'))
+
+        self.ports.connect_port('hello', lambda: None)
+        self.assertFalse(self.ports.is_disconnected_port('hello'))
+
+        self.ports.disconnect_port('hello')
+        self.assertTrue(self.ports.is_disconnected_port('hello'))
+
+    def test_identification_of_disconnected_port_raises_for_unknown_port(self):
+        with self.assertRaisesRegexp(UnknownPort, '"boo" is not a valid port'):
+            self.ports.is_disconnected_port('boo')
+
 
 class ShadowPortArrayTest(TestCase):
 

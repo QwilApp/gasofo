@@ -526,4 +526,4 @@ the setup for the tests would be more elaborate. For example, one might wire up 
 dependencies, then treat the whole mesh as a single domain. We could then use the same tooling as described above to 
 implement our acceptance tests or integration tests.
 
-See `/Users/shawn/work/gasofo/tests/example/domains/test_app.py` for a simple example of how this might be achieved.
+See `example/domains/test_app.py` for a simple example of how this might be achieved.
