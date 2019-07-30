@@ -33,10 +33,38 @@ def patch_port(component, port_name):
     return PortPatcher(component=component, port_name=port_name)
 
 
+def wrap_port(component, port_name):
+    """ Like `patch_port`, but calls to the mock object are passed through to the actual provider.
+
+    However, if return_value is set on the mock object then calls are not passed to the wrapped provider and the
+    `return_value` is returned instead. This would effectively then behave just like `patch_port`.
+
+    Use this as a context manager as such:
+
+        with wrap_port(my_connected_app, 'port_x') as wrapped_port_x:
+            my_connected_app.do_something()
+            wrapped_port_x.assert_called()
+
+    Or by instantiating the patcher and manually starting/stopping it:
+
+        class MyTestCase(TestCase):
+            def setUp(self):
+                patcher = wrap_port(my_connected_app, 'port_x')
+                self.wrapped_port_x = patcher.start()
+                self.addCleanup(patcher.stop)
+
+    Note that multiple needs ports may be end up connected to the mock provider. All the targeted needs ports must
+    be connected to the same provider or an exception is raised.
+
+    """
+    return PortPatcher(component=component, port_name=port_name, wraps_provider=True)
+
+
 class PortPatcher(object):
-    def __init__(self, component, port_name):
+    def __init__(self, component, port_name, wraps_provider=False):
         self.component = component
         self.port_name = port_name
+        self.wraps_provider = wraps_provider
         self._patches = []
         self.is_started = False
 
@@ -51,7 +79,8 @@ class PortPatcher(object):
         if self.is_started:
             raise RuntimeError('patch already started')
 
-        mock_provider = mock.Mock(spec_set=self.provider)
+        wrapped = self.provider if self.wraps_provider else None
+        mock_provider = mock.Mock(spec_set=self.provider, wraps=wrapped)
         self._patches = [mock.patch.object(service.deps, self.port_name, mock_provider) for service in self.targets]
         for patcher in self._patches:
             patcher.start()

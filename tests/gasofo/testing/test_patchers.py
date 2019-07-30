@@ -13,7 +13,10 @@ from gasofo.exceptions import (
     UnknownPort,
     DisconnectedPort,
 )
-from gasofo.testing import patch_port
+from gasofo.testing import (
+    patch_port,
+    wrap_port,
+)
 
 
 def get_domain():
@@ -140,3 +143,76 @@ class PatchPortTest(TestCase):
 
         with self.assertRaisesRegexp(RuntimeError, 'patch already started'):
             patcher.start()
+
+
+class WrapPortTest(TestCase):
+
+    def test_wrap_port_as_context_manager(self):
+        domain = get_domain()
+
+        with wrap_port(component=domain, port_name='b') as wrapped_b:
+            self.assertEqual(9 * 10 + 5, domain.a(9))  # should call through to actual port
+            wrapped_b.assert_called_once_with(value=9)  # mock object can be used to assert calls
+
+        # patch removed outside of context manager and calls no longer intercepted
+        wrapped_b.reset_mock()
+        self.assertEqual(9 * 10 + 5, domain.a(9))
+        wrapped_b.assert_not_called()
+
+    def test_wrap_port_with_manual_start_stop(self):
+        domain = get_domain()
+        patcher = wrap_port(component=domain, port_name='b')
+
+        wrapped_b = patcher.start()
+        self.assertEqual(9 * 10 + 5, domain.a(9))  # should call through to actual port
+        wrapped_b.assert_called_once_with(value=9)  # mock object can be used to assert calls
+
+        patcher.stop()
+        # once stopped, calls no longer intercepted
+        wrapped_b.reset_mock()
+        self.assertEqual(9 * 10 + 5, domain.a(9))
+        wrapped_b.assert_not_called()
+
+    def test_patch_port_affects_all_consumers_of_a_port(self):
+        domain = get_domain()
+
+        with wrap_port(component=domain, port_name='b') as wrapped_b:
+            self.assertEqual(9 * 10 + 5, domain.a(9))
+            self.assertEqual(2 * 9 * 10 + 5, domain.e(9))
+
+            wrapped_b.assert_has_calls([mock.call(value=9), mock.call(value=2 * 9)], any_order=False)
+
+        # patch removed outside of context manager and calls no longer intercepted
+        wrapped_b.reset_mock()
+        self.assertEqual(9 * 10 + 5, domain.a(9))
+        self.assertEqual(2 * 9 * 10 + 5, domain.e(9))
+        wrapped_b.assert_not_called()
+
+    def test_wrap_port_with_unknown_port_raises(self):
+        domain = get_domain()
+
+        with self.assertRaisesRegexp(UnknownPort, 'Could not find instances of port "unknown_port"'):
+            wrap_port(domain, port_name='unknown_port')
+
+    def test_wrap_port_with_disconnected_port_raises(self):
+        domain = get_domain()
+        domain2 = domain.__class__()  # get new instance of domain where 'c' port is not yet connected
+
+        with self.assertRaisesRegexp(DisconnectedPort, 'B.c is disconnected'):
+            wrap_port(domain2, port_name='c')
+
+    def test_stopping_patcher_before_starting_raises(self):
+        domain = get_domain()
+        patcher = wrap_port(domain, port_name='c')
+
+        with self.assertRaisesRegexp(RuntimeError, 'patcher not yet started'):
+            patcher.stop()
+
+    def test_starting_patcher_already_started_raises(self):
+        domain = get_domain()
+        patcher = wrap_port(domain, port_name='c')
+        patcher.start()
+
+        with self.assertRaisesRegexp(RuntimeError, 'patch already started'):
+            patcher.start()
+
