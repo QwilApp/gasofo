@@ -95,7 +95,7 @@ class PortPatcher(object):
             patcher.stop()
 
         self._patches = None
-        self.is_started = True
+        self.is_started = False
 
     def __enter__(self):
         return self.start()

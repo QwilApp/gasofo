@@ -136,6 +136,15 @@ class PatchPortTest(TestCase):
         with self.assertRaisesRegexp(RuntimeError, 'patcher not yet started'):
             patcher.stop()
 
+    def test_stopping_patcher_twice_raises(self):
+        domain = get_domain()
+        patcher = patch_port(domain, port_name='c')
+        patcher.start()
+        patcher.stop()
+
+        with self.assertRaisesRegexp(RuntimeError, 'patcher not yet started'):
+            patcher.stop()
+
     def test_starting_patcher_already_started_raises(self):
         domain = get_domain()
         patcher = patch_port(domain, port_name='c')
@@ -204,6 +213,15 @@ class WrapPortTest(TestCase):
     def test_stopping_patcher_before_starting_raises(self):
         domain = get_domain()
         patcher = wrap_port(domain, port_name='c')
+
+        with self.assertRaisesRegexp(RuntimeError, 'patcher not yet started'):
+            patcher.stop()
+
+    def test_stopping_patcher_twice_raises(self):
+        domain = get_domain()
+        patcher = wrap_port(domain, port_name='c')
+        patcher.start()
+        patcher.stop()
 
         with self.assertRaisesRegexp(RuntimeError, 'patcher not yet started'):
             patcher.stop()
