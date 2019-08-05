@@ -153,6 +153,23 @@ class PatchPortTest(TestCase):
         with self.assertRaisesRegexp(RuntimeError, 'patch already started'):
             patcher.start()
 
+    def test_default_behaviour_of_mock_obj(self):
+        domain = get_domain()
+        with patch_port(domain, port_name='c') as m:
+            self.assertIsNone(m.side_effect)
+            self.assertIsInstance(m.return_value, mock.mock.Mock)
+
+    def test_side_effect_can_be_specified_during_patching(self):
+        domain = get_domain()
+        with patch_port(domain, port_name='c', side_effect=ValueError):
+            with self.assertRaises(ValueError):
+                domain.a(9)
+
+    def test_return_value_can_be_specified_during_patching(self):
+        domain = get_domain()
+        with patch_port(domain, port_name='c', return_value=100):
+            self.assertEqual(10 * 9 + 100, domain.a(9))
+
 
 class WrapPortTest(TestCase):
 

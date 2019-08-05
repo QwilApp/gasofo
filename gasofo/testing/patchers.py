@@ -8,7 +8,7 @@ from gasofo.exceptions import (
 )
 
 
-def patch_port(component, port_name):
+def patch_port(component, port_name, side_effect=None, return_value=mock.DEFAULT):
     """ Patches all needs ports of the given name in the component (domain or service) and its children.
 
     Use this as a context manager as such:
@@ -30,7 +30,7 @@ def patch_port(component, port_name):
 
     The mock object will be create with the spec_set of the connected provider.
     """
-    return PortPatcher(component=component, port_name=port_name)
+    return PortPatcher(component=component, port_name=port_name, side_effect=side_effect, return_value=return_value)
 
 
 def wrap_port(component, port_name):
@@ -61,12 +61,14 @@ def wrap_port(component, port_name):
 
 
 class PortPatcher(object):
-    def __init__(self, component, port_name, wraps_provider=False):
+    def __init__(self, component, port_name, wraps_provider=False, side_effect=None, return_value=mock.DEFAULT):
         self.component = component
         self.port_name = port_name
         self.wraps_provider = wraps_provider
         self._patches = []
         self.is_started = False
+        self.side_effect = side_effect
+        self.return_value = return_value
 
         targets = self._find_services_that_needs_port(component=component, port_name=port_name)
         if not targets:
@@ -80,7 +82,13 @@ class PortPatcher(object):
             raise RuntimeError('patch already started')
 
         wrapped = self.provider if self.wraps_provider else None
-        mock_provider = mock.Mock(spec_set=self.provider, wraps=wrapped)
+        mock_provider = mock.Mock(
+            spec_set=self.provider,
+            wraps=wrapped,
+            side_effect=self.side_effect,
+            return_value=self.return_value,
+        )
+
         self._patches = [mock.patch.object(service.deps, self.port_name, mock_provider) for service in self.targets]
         for patcher in self._patches:
             patcher.start()
