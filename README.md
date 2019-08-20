@@ -314,7 +314,7 @@ In Qwil we use two kinds of adapters:
 ### Service-based adapters
 
 Service based adapters are essentially standard providers i.e. objects that expose INeed and IProvide interfaces. They 
-are technically no different from Services except that they contain no business login and instead server as a bridge
+are technically no different from Services except that they contain no business logic and instead server as a bridge
 between two ports.
 
 By ensuring that we use globally unique port names throughout the application, and guaranteeing that ports with matching
