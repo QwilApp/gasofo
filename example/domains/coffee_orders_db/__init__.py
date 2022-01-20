@@ -5,7 +5,6 @@ from gasofo import (
     Domain,
 )
 
-__author__ = 'shawn'
 __all__ = ['CoffeeOrderDBInterface']
 
 

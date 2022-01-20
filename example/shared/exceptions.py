@@ -1,5 +1,3 @@
-__author__ = 'shawn'
-
 
 # For brevity, we use this one exception for all invalid requests and error conditions.
 class InvalidAction(Exception):

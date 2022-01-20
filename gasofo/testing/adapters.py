@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 from gasofo.convenience import object_as_provider
 from gasofo.discoverable import (
@@ -7,8 +7,6 @@ from gasofo.discoverable import (
 )
 from gasofo.exceptions import UnknownPort
 from gasofo.service import get_template_funcs
-
-__author__ = 'shawn'
 
 
 def attach_mock_provider(consumer, ports):
@@ -27,7 +25,7 @@ def attach_mock_provider(consumer, ports):
 
     # supply return_value if provider
     if isinstance(ports, dict):
-        for port, value in ports.iteritems():
+        for port, value in list(ports.items()):
             getattr(provider_impl, port).return_value = value
 
     provider = object_as_provider(provider=provider_impl, ports=ports)

@@ -1,8 +1,6 @@
 from gasofo import Service, provides
 from typing import List
 
-__author__ = 'shawn'
-
 
 class CoffeeMenu(Service):
 

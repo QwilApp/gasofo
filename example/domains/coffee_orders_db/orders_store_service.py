@@ -14,8 +14,6 @@ from gasofo import (
     provides_with,
 )
 
-__author__ = 'shawn'
-
 
 class OrdersStoreNeeds(NeedsInterface):
 

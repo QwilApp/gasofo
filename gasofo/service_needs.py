@@ -1,10 +1,12 @@
 import types
+from typing import List
 
 from gasofo.exceptions import (
     DuplicatePortDefinition,
     NeedsInterfaceDefinitionError,
 )
 from gasofo.ports import PortArray
+from future.utils import with_metaclass
 
 
 class Needs(PortArray):
@@ -13,10 +15,10 @@ class Needs(PortArray):
         @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
     """
 
-    def __init__(self, ports):
+    def __init__(self, ports: List[str]):
         super(Needs, self).__init__()
 
-        if isinstance(ports, basestring):
+        if isinstance(ports, str):
             ports = [ports]
 
         for port in ports:
@@ -33,7 +35,7 @@ class NeedsInterfaceMetaclass(type):
             return type.__new__(mcs, name, bases, state)
 
         needs = {}
-        for attr_name, member in state.items():
+        for attr_name, member in list(state.items()):
             if attr_name == '__init__' and bases != (Needs, ):
                 msg = '{}.__init__ - cannot override constructor of Needs Interface'.format(name)
                 raise NeedsInterfaceDefinitionError(msg)
@@ -51,7 +53,7 @@ class NeedsInterfaceMetaclass(type):
             # However, we do keep a reference to the original functions for debugging and testing purposes.
             needs[attr_name] = state.pop(attr_name)
 
-        state['_needs'] = needs.keys()
+        state['_needs'] = list(needs.keys())
         state['_needs_template_funcs'] = needs
 
         # SHC: not sure this is a good ideal. Hide this away for now
@@ -60,9 +62,8 @@ class NeedsInterfaceMetaclass(type):
         return type.__new__(mcs, name, bases, state)
 
 
-class NeedsInterface(Needs):
+class NeedsInterface(with_metaclass(NeedsInterfaceMetaclass, Needs)):
     """Used to define Needs ports of a Service as an interface class."""
-    __metaclass__ = NeedsInterfaceMetaclass
 
     def __init__(self):
         super(NeedsInterface, self).__init__(ports=self._needs)  # apply needs discovered by metaclass

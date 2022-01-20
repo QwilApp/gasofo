@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import mock
+from unittest import mock
 
 from gasofo import (
     Domain,
@@ -157,7 +157,7 @@ class PatchPortTest(TestCase):
         domain = get_domain()
         with patch_port(domain, port_name='c') as m:
             self.assertIsNone(m.side_effect)
-            self.assertIsInstance(m.return_value, mock.mock.Mock)
+            self.assertIsInstance(m.return_value, mock.Mock)
 
     def test_side_effect_can_be_specified_during_patching(self):
         domain = get_domain()

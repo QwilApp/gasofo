@@ -1,3 +1,5 @@
+from builtins import next
+from builtins import object
 import itertools
 
 from example.app import App
@@ -119,7 +121,7 @@ class FakeClock(object):
         self._counter = itertools.count(start=10001)
 
     def tick(self):
-        return self._counter.next()
+        return next(self._counter)
 
     def as_provider(self):
         return func_as_provider(func=self.tick, port='get_current_ts')

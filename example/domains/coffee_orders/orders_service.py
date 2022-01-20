@@ -8,8 +8,6 @@ from gasofo import (
     provides,
 )
 
-__author__ = 'shawn'
-
 
 class OrdersNeeds(NeedsInterface):
 

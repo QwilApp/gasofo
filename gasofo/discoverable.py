@@ -8,10 +8,8 @@ from gasofo.exceptions import (
     UnknownPort
 )
 
-__author__ = 'shawn'
 
-
-class IProvide(object):
+class IProvide:
     def get_provides(self):  # pragma: no cover
         raise NotImplementedError('Implement me to return list of Provides port names')
 
@@ -25,7 +23,7 @@ class IProvide(object):
         raise NotImplementedError('Implement me to return a dict of flags')
 
 
-class INeed(object):
+class INeed:
     def __init__(self):
         self._providers = {}
 
@@ -47,7 +45,7 @@ class INeed(object):
         self._satisfy_need(port_name, provider.get_provider_func(port_name))
         self._providers[port_name] = provider
 
-    def get_provider(self, port_name):
+    def get_provider(self, port_name) :
         try:
             return self._providers[port_name]
         except KeyError:
@@ -57,7 +55,7 @@ class INeed(object):
 DiscoveredConnection = namedtuple('DiscoveredConnection', 'port_name consumer provider')
 
 
-class AutoDiscoverConnections(object):
+class AutoDiscoverConnections:
 
     def __init__(self, components):
         self._components = components
@@ -66,10 +64,10 @@ class AutoDiscoverConnections(object):
         self.assert_no_components_satisfying_themselves(self._needs, self._provides)
 
     def get_needs(self):
-        return sorted(self._needs.iterkeys())
+        return sorted(self._needs.keys())
 
     def get_provides(self):
-        return sorted(self._provides.iterkeys())
+        return sorted(self._provides.keys())
 
     def unsatisfied_needs(self):
         unsatisfied = set(self._needs).difference(self._provides)
@@ -116,7 +114,7 @@ class AutoDiscoverConnections(object):
 
     @staticmethod
     def assert_no_components_satisfying_themselves(needs, provides):
-        for port, needy_component in needs.iteritems():
+        for port, needy_component in needs.items():
             provider = provides.get(port, None)
             if provider and provider in needy_component:
                 raise SelfReferencingMadness('{} both needs and provides "{}". Madness.'.format(provider, port))

@@ -181,8 +181,8 @@ class ServiceProvidesTest(TestCase):
             def provider_a(self):
                 return 'A'
 
-        self.assertItemsEqual(['provider_a'], MyService.get_provides())
-        self.assertItemsEqual(['provider_a'], MyService().get_provides())
+        self.assertCountEqual(['provider_a'], MyService.get_provides())
+        self.assertCountEqual(['provider_a'], MyService().get_provides())
 
     def test_querying_provides_ports_with_custom_name_on_service_class_and_instance(self):
 
@@ -195,8 +195,8 @@ class ServiceProvidesTest(TestCase):
             def another_provider(self):
                 return 'B'
 
-        self.assertItemsEqual(['provider_a', 'provider_b'], MyService.get_provides())
-        self.assertItemsEqual(['provider_a', 'provider_b'], MyService().get_provides())
+        self.assertCountEqual(['provider_a', 'provider_b'], MyService.get_provides())
+        self.assertCountEqual(['provider_a', 'provider_b'], MyService().get_provides())
 
     def test_getting_provider_func_from_service_instance(self):
 
@@ -220,7 +220,7 @@ class ServiceProvidesTest(TestCase):
             def provider_a(self):
                 return 'A'
 
-        with self.assertRaisesRegexp(TypeError, 'unbound method .+ must be called with MyService instance .*'):
+        with self.assertRaises(TypeError):
             MyService.get_provider_func('provider_a')
 
     def test_getting_provider_func_with_invalid_port_name_raises_UnknownPort(self):
@@ -350,7 +350,7 @@ class ServiceTemplateFuncTest(TestCase):
 
         service = MyService()
         template_funcs = get_template_funcs(service=service)
-        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+        self.assertCountEqual(['a', 'b'], list(template_funcs.keys()))
 
         def expected_template(self, *args, **kwargs):
             pass
@@ -374,7 +374,7 @@ class ServiceTemplateFuncTest(TestCase):
 
         service = MyService()
         template_funcs = get_template_funcs(service=service)
-        self.assertItemsEqual(['a', 'b', 'c'], template_funcs.keys())
+        self.assertCountEqual(['a', 'b', 'c'], list(template_funcs.keys()))
 
         self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
         self.assert_has_same_argspec(lambda self, x, **kwargs: None, template_funcs['b'])
@@ -397,4 +397,4 @@ class ServiceTemplateFuncTest(TestCase):
         self.assertRaises(NotImplementedError, func, None)  # template func meant as unbound methods so expects a 'self'
 
     def assert_has_same_argspec(self, func1, func2):
-        self.assertEqual(inspect.getargspec(func=func1), inspect.getargspec(func=func2))
+        self.assertEqual(inspect.getfullargspec(func=func1), inspect.getfullargspec(func=func2))

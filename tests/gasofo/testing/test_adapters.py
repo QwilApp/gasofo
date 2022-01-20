@@ -79,13 +79,13 @@ class AttachMockProviderTest(TestCase):
         self.assertEqual(53, service.get_a(b=50, a=3))
         self.assertEqual(60, service.get_a(a=50))
 
-        with self.assertRaisesRegexp(TypeError, "'a' parameter lacking default value"):
+        with self.assertRaisesRegexp(TypeError, "missing a required argument: 'a'"):
             service.get_a()
 
-        with self.assertRaisesRegexp(TypeError, "too many keyword arguments {'c': 10}"):
+        with self.assertRaisesRegexp(TypeError, "got an unexpected keyword argument 'c'"):
             service.get_a(100, c=10)
 
-        with self.assertRaisesRegexp(TypeError, "'a' parameter lacking default value"):
+        with self.assertRaisesRegexp(TypeError, "missing a required argument: 'a'"):
             service.get_a(b=10)
 
     def test_interface_restriction_transferred_to_service_with_shared_needs(self):
@@ -118,5 +118,5 @@ class AttachMockProviderTest(TestCase):
         # assert works as expected if called properly
         self.assertEqual(53, domain.get_another(a=50, b=3))
 
-        with self.assertRaisesRegexp(TypeError, "too many keyword arguments {'c': 10}"):
+        with self.assertRaisesRegexp(TypeError, "got an unexpected keyword argument 'c'"):
             domain.get_another(100, c=10)

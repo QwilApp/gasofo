@@ -1,4 +1,5 @@
-import mock
+from builtins import object
+from unittest import mock
 
 from gasofo import Service
 from gasofo.exceptions import (
@@ -118,7 +119,7 @@ class PortPatcher(object):
 
         found = []
         service_map = getattr(component, '_service_map', {})
-        for child_instance in service_map.itervalues():
+        for child_instance in list(service_map.values()):
             found.extend(self._find_services_that_needs_port(component=child_instance, port_name=port_name))
 
         return found

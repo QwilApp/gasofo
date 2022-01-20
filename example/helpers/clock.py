@@ -3,8 +3,6 @@ import datetime
 
 from gasofo import func_as_provider
 
-__author__ = 'shawn'
-
 
 class Clock(object):
     """Shared clock."""

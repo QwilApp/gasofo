@@ -15,7 +15,7 @@ class CoffeeMenuServiceTest(GasofoTestCase):
             "Hot Chocolate",
         }
 
-        self.assertItemsEqual(expected, self.service.get_menu_items())
+        self.assertCountEqual(expected, self.service.get_menu_items())
 
     def test_is_valid_menu_item__returns_False_if_item_not_in_menu(self):
         self.assertFalse(

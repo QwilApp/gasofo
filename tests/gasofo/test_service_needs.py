@@ -25,8 +25,8 @@ class ServiceNeedsTest(TestCase):
             def happiness(self):
                 return self.deps.health(), self.deps.time(), self.deps.money()
 
-        self.assertItemsEqual(['health', 'time', 'money'], MyService.get_needs())
-        self.assertItemsEqual(['health', 'time', 'money'], MyService().get_needs())
+        self.assertCountEqual(['health', 'time', 'money'], MyService.get_needs())
+        self.assertCountEqual(['health', 'time', 'money'], MyService().get_needs())
 
     def test_access_to_unadapted_needs_port_raises_DisconnectedPort(self):
 
@@ -113,8 +113,8 @@ class ServiceNeedsInterfaceTest(TestCase):
                 # type: () -> str
                 return self.deps.wealth(50000) + self.deps.health(50)
 
-        self.assertItemsEqual(['health', 'wealth'], MyService.get_needs())
-        self.assertItemsEqual(['health', 'wealth'], MyService().get_needs())
+        self.assertCountEqual(['health', 'wealth'], MyService.get_needs())
+        self.assertCountEqual(['health', 'wealth'], MyService().get_needs())
 
     def test_service_needs_defined_with_interface_can_be_adapted(self):
 

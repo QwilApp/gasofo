@@ -166,7 +166,7 @@ class DomainDefinitionTest(TestCase):
 
     def test_domain_which_specifies_invalid_service_classes_raises_DomainDefinitionError(self):
 
-        class Useless(object):
+        class Useless:
             pass
 
         msg = ('Component classes defined in BadDomain.__services__ should be subclasses of IProvide. '
@@ -253,8 +253,8 @@ class DomainDefinitionTest(TestCase):
     #     self.assert_has_same_argspec(SimpleService.func_with_varargs, SimpleDomain.func_with_varargs)
     #
     # def assert_has_same_argspec(self, func1, func2):
-    #     arg_spec1 = inspect.getargspec(func1)
-    #     arg_spec2 = inspect.getargspec(func2)
+    #     arg_spec1 = inspect.getfullargspec(func1)
+    #     arg_spec2 = inspect.getfullargspec(func2)
     #     self.assertEqual(arg_spec1, arg_spec2)
 
 
@@ -356,7 +356,7 @@ class DomainAutoProviderTest(TestCase):
             __services__ = self.get_services()
             __provides__ = AutoProvide()
 
-        self.assertItemsEqual(['bark', 'meow', 'purr', 'complain'], Noisy.get_provides())
+        self.assertCountEqual(['bark', 'meow', 'purr', 'complain'], Noisy.get_provides())
 
     def test_domain_that_auto_exports_ports_that_matches_pattern(self):
 
@@ -364,7 +364,7 @@ class DomainAutoProviderTest(TestCase):
             __services__ = self.get_services()
             __provides__ = AutoProvide(r'.{4}$')  # take only 4-letter ports
 
-        self.assertItemsEqual(['bark', 'meow', 'purr'], Noisy.get_provides())
+        self.assertCountEqual(['bark', 'meow', 'purr'], Noisy.get_provides())
 
 
 class DomainNeedsTest(TestCase):
@@ -414,8 +414,8 @@ class DomainNeedsTest(TestCase):
         TestDomain = self.get_test_domain_class()
         domain = TestDomain
 
-        self.assertItemsEqual(['a', 'b', 'c'], TestDomain.get_needs())
-        self.assertItemsEqual(['a', 'b', 'c'], domain.get_needs())
+        self.assertCountEqual(['a', 'b', 'c'], TestDomain.get_needs())
+        self.assertCountEqual(['a', 'b', 'c'], domain.get_needs())
 
     def test_providers_can_be_assigned_to_needs_of_a_domain(self):
         TestDomain = self.get_test_domain_class()
@@ -446,8 +446,8 @@ class DomainConnectivityTest(TestCase):
         self.assertIs(b, a.get_provider('b1'))
         self.assertIs(c, b.get_provider('c1'))
 
-        self.assertItemsEqual(['x', 'y'], d.get_needs())
-        self.assertItemsEqual(['a1', 'b2'], d.get_provides())
+        self.assertCountEqual(['x', 'y'], d.get_needs())
+        self.assertCountEqual(['a1', 'b2'], d.get_provides())
 
     @staticmethod
     def _get_service_and_domain_classes():
@@ -618,8 +618,8 @@ class DomainConnectivityTest(TestCase):
             __provides__ = ['a1', 'b2']
 
         domain = ParentDomain()
-        self.assertItemsEqual(['a1', 'b2'], domain.get_provides())
-        self.assertItemsEqual([], domain.get_needs())
+        self.assertCountEqual(['a1', 'b2'], domain.get_provides())
+        self.assertCountEqual([], domain.get_needs())
 
         self.assertEqual(expected_values['a1'], domain.a1())
         self.assertEqual(expected_values['b2'], domain.b2())
@@ -662,7 +662,7 @@ class DomainTemplateFuncTest(TestCase):
         D = self._get_domain_class()
         domain = D()
         template_funcs = get_template_funcs(service=domain)
-        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+        self.assertCountEqual(['a', 'b'], list(template_funcs.keys()))
 
         self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
         self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['b'])
@@ -676,7 +676,7 @@ class DomainTemplateFuncTest(TestCase):
 
         domain = SuperDomain()
         template_funcs = get_template_funcs(service=domain)
-        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+        self.assertCountEqual(['a', 'b'], list(template_funcs.keys()))
 
         self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
         self.assert_has_same_argspec(lambda self, *args, **kwargs: None, template_funcs['b'])
@@ -685,28 +685,28 @@ class DomainTemplateFuncTest(TestCase):
 
         class NeedsA(NeedsInterface):
             def a(self, x, y=123):
-                pass
+                return x * y
 
         class A(Service):
             deps = NeedsA()
 
             @provides
             def aaa(self):
-                return self.deps.a()
+                return self.deps.a(1)
 
         class NeedsAB(NeedsInterface):
             def a(self, x, y=123):  # matching argspec
-                pass
+                return x + y
 
             def b(self, z):
-                pass
+                return z
 
         class AB(Service):
             deps = NeedsAB()
 
             @provides
             def abb(self):
-                return self.deps.a() + self.deps.b()
+                return self.deps.a(1) + self.deps.b(2)
 
         class B(Service):
             deps = Needs(['b'])  # no interface, should still match
@@ -721,7 +721,7 @@ class DomainTemplateFuncTest(TestCase):
 
         domain = D()
         template_funcs = get_template_funcs(service=domain)
-        self.assertItemsEqual(['a', 'b'], template_funcs.keys())
+        self.assertCountEqual(['a', 'b'], list(template_funcs.keys()))
 
         self.assert_has_same_argspec(lambda self, x, y=123: None, template_funcs['a'])
         self.assert_has_same_argspec(lambda self, z: None, template_funcs['b'])
@@ -760,4 +760,4 @@ class DomainTemplateFuncTest(TestCase):
                 __provides__ = AutoProvide()
 
     def assert_has_same_argspec(self, func1, func2):
-        self.assertEqual(inspect.getargspec(func=func1), inspect.getargspec(func=func2))
+        self.assertEqual(inspect.getfullargspec(func=func1), inspect.getfullargspec(func=func2))
