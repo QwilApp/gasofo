@@ -1,3 +1,4 @@
+from example.shared.datatypes import OrderDetails
 from gasofo import (
     NeedsInterface,
     Service,
@@ -7,8 +8,7 @@ from gasofo import (
 
 class OrderHistoryStoreNeeds(NeedsInterface):
 
-    def get_dict_store_for_order_history(self):
-        # type: () -> dict
+    def get_dict_store_for_order_history(self) -> dict:
         """Gets a reference to a dict object from and in-mem provider."""
 
 
@@ -18,13 +18,13 @@ class OrderHistoryStore(Service):
     deps = OrderHistoryStoreNeeds()
 
     @provides
-    def db_store_closed_order(self, order_details):
+    def db_store_closed_order(self, order_details: OrderDetails):
         room = order_details.room
-        immutable_order = order_details._replace(orders=tuple(order_details.orders))
+        immutable_order = order_details._replace(orders=list(order_details.orders))
         self._orders_by_room.setdefault(room, []).append(immutable_order)
 
     @provides
-    def db_get_closed_orders_for_room(self, room):
+    def db_get_closed_orders_for_room(self, room: str) -> OrderDetails:
         return self._orders_by_room.get(room, [])
 
     @property

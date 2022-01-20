@@ -3,7 +3,6 @@ import site
 import os
 
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -22,9 +21,9 @@ if __name__ == '__main__':
     from example.app import create_app
 
     app = create_app()
-    print 'MENU', app.get_menu_items()
-    print app.open_for_orders(requester='Nicolas', room='Qwil')
-    print app.make_order(requester='Shawn', room='Qwil', order_item='Flat White')
-    print app.make_order(requester='Nicolas', room='Qwil', order_item='Cappucino')
-    print app.make_order(requester='Casey', room='Qwil', order_item='Hot Chocolate')
-    print app.close_orders(requester='Nicolas', room='Qwil')
+    print('MENU', app.get_menu_items())
+    print(app.open_for_orders(requester='Nicolas', room='Qwil'))
+    print(app.make_order(requester='Shawn', room='Qwil', order_item='Flat White'))
+    print(app.make_order(requester='Nicolas', room='Qwil', order_item='Cappucino'))
+    print(app.make_order(requester='Casey', room='Qwil', order_item='Hot Chocolate'))
+    print(app.close_orders(requester='Nicolas', room='Qwil'))

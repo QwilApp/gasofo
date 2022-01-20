@@ -51,12 +51,12 @@ class AppAcceptanceTests(GasofoTestCase):
             order_id='ID0001',
             buyer='Nicolas',
             room='qwil',
-            orders=(
+            orders=[
                 OrderItem(item='Black Americano', recipient='Shawn', order_ts=10002),
                 OrderItem(item='Flat White', recipient='Nicolas', order_ts=10003),
                 OrderItem(item='Flat White', recipient='Laura', order_ts=10004),
                 OrderItem(item='Cappucino', recipient='Casey', order_ts=10005),
-            ),
+            ],
             open_ts=10001,
             close_ts=10006,
         ), summary)
@@ -97,9 +97,9 @@ class AppAcceptanceTests(GasofoTestCase):
                 order_id='ID0001',
                 buyer='Nicolas',
                 room='qwil',
-                orders=(
+                orders=[
                     OrderItem(item='Black Americano', recipient='Shawn', order_ts=10002),
-                ),
+                ],
                 open_ts=10001,
                 close_ts=10003,
             ),
@@ -107,9 +107,9 @@ class AppAcceptanceTests(GasofoTestCase):
                 order_id='ID0002',
                 buyer='Shawn',
                 room='qwil',
-                orders=(
+                orders=[
                     OrderItem(item='Flat White', recipient='Casey', order_ts=10005),
-                ),
+                ],
                 open_ts=10004,
                 close_ts=10006,
             )

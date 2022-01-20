@@ -5,8 +5,7 @@ from typing import List
 class CoffeeMenu(Service):
 
     @provides
-    def is_valid_menu_item(self, item_name):
-        # type: (str) -> bool
+    def is_valid_menu_item(self, item_name: str) -> bool:
         """Determines if the given item is in the menu.
 
         Args:
@@ -18,8 +17,7 @@ class CoffeeMenu(Service):
         return item_name in self._items()
 
     @provides
-    def get_menu_items(self):
-        # type: () -> List[str]
+    def get_menu_items(self) -> List[str]:
         """ Returns a list of all menu items. """
         return sorted(self._items())  # return a copy
 

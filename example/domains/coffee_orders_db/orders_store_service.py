@@ -17,16 +17,13 @@ from gasofo import (
 
 class OrdersStoreNeeds(NeedsInterface):
 
-    def get_dict_store_for_orders(self):
-        # type: () -> dict
+    def get_dict_store_for_orders(self) -> dict:
         """Gets a reference to a dict object from and in-mem provider."""
 
-    def get_next_unique_id(self):
-        # type: () -> str
+    def get_next_unique_id(self) -> str:
         """Gets next unique id for orders."""
 
-    def get_current_ts(self):
-        # type: () -> int
+    def get_current_ts(self) -> int:
         """Gets current timestamp."""
 
 
@@ -41,8 +38,7 @@ class OrdersStore(Service):
     deps = OrdersStoreNeeds()
 
     @provides_with(name='db_create_order')
-    def create_order(self, room, buyer):
-        # type: (str, str) -> OrderSummary
+    def create_order(self, room: str, buyer: str) -> OrderSummary:
         if room in self._orders:
             raise InvalidAction('Order already open for room ' + room)
 
@@ -60,19 +56,17 @@ class OrdersStore(Service):
         return order_summary
 
     @provides_with(name='db_close_order')
-    def close_order(self, room):
-        # type: (str) -> OrderDetails
+    def close_order(self, room: str) -> OrderDetails:
         try:
             order = self._orders.pop(room)
         except KeyError:
             raise InvalidAction('No open orders for room ' + room)
 
-        closed_order = order._replace(close_ts=self.deps.get_current_ts(), orders=tuple(order.orders))
+        closed_order = order._replace(close_ts=self.deps.get_current_ts(), orders=list(order.orders))
         return closed_order
 
     @provides_with(name='db_get_active_order')
-    def get_active_order(self, room):
-        # type: (str) -> Optional[OrderSummary]
+    def get_active_order(self, room: str) -> Optional[OrderSummary]:
         try:
             order_details = self._orders[room]
             return self._extract_summary(order_details)
@@ -80,7 +74,7 @@ class OrdersStore(Service):
             return None
 
     @provides_with(name='db_add_order_item')
-    def add_order_item(self, room, item, recipient):
+    def add_order_item(self, room: str, item: str, recipient: str) -> OrderItem:
         try:
             order_details = self._orders[room]
         except KeyError:
@@ -91,7 +85,7 @@ class OrdersStore(Service):
         return order_item
 
     @provides_with(name='db_get_order_details')
-    def get_order_details(self, room):
+    def get_order_details(self, room: str) -> OrderDetails:
         try:
             order_details = self._orders[room]
         except KeyError:
