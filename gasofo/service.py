@@ -1,17 +1,13 @@
 import inspect
-import re
-import textwrap
-from shlex import shlex
-from types import MethodType
 from typing import (
     Any,
     Dict,
-    FrozenSet,
     Generic,
     List,
     TypeVar,
 )
 
+from gasofo.dep_parser import parse_deps_used
 from gasofo.discoverable import (
     INeed,
     IProvide,
@@ -158,19 +154,6 @@ class ServiceMetaclass(type):
         unused_needs = needs_ports_defined.difference(all_deps_used)
         if unused_needs:
             raise UnusedPort('{} has unused Needs - {}'.format(class_name, ', '.join(sorted(unused_needs))))
-
-
-def parse_deps_used(method) -> FrozenSet[str]:
-    # Start simple for now. Match using regex instead of walking parsed ast tree.
-    method_source = discard_comments_and_newlines(textwrap.dedent(inspect.getsource(method)))
-    deps_used = re.findall(r'self\.deps\.(.+?)[\(,]', method_source)
-    return frozenset(deps_used)
-
-
-def discard_comments_and_newlines(source: str) -> str:
-    lex = shlex(source, posix=True)
-    lex.whitespace = '\n'
-    return ''.join(lex)
 
 
 class Service(INeed, IProvide, metaclass=ServiceMetaclass):
