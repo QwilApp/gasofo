@@ -18,6 +18,7 @@ setuptools.setup(
     url="https://github.com/QwilApp/gasofo",
     packages=packages,
     install_requires=[],
+    python_requires='>=3.6',
     classifiers=[
         "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: MIT License",
