@@ -21,10 +21,10 @@ class PortArrayTests(TestCase):
 
     def test_adding_port(self):
         self.ports.add_port('hello')
-        self.assertItemsEqual(['hello'], self.ports.get_ports())
+        self.assertCountEqual(['hello'], self.ports.get_ports())
 
         self.ports.add_port('world')
-        self.assertItemsEqual(['hello', 'world'], self.ports.get_ports())
+        self.assertCountEqual(['hello', 'world'], self.ports.get_ports())
 
     def test_newly_added_port_raises_DisconnectedPort_when_called(self):
         self.ports.add_port('hello')
@@ -157,7 +157,7 @@ class PortArrayTests(TestCase):
 
         new_ports = PortArray.replicate(self.ports)
         self.assertIsNot(new_ports, self.ports)
-        self.assertItemsEqual(['hello', 'world'], new_ports.get_ports())
+        self.assertCountEqual(['hello', 'world'], new_ports.get_ports())
 
         # all ports should be disconnected
         with self.assertRaisesRegexp(DisconnectedPort, 'Port "hello" has not been connected'):
@@ -198,11 +198,11 @@ class ShadowPortArrayTest(TestCase):
 
     def test_shadow_with_only_one_child(self):
         shadow = ShadowPortArray([self.array_b])
-        self.assertItemsEqual(['b_only', 'in_both'], shadow.get_ports())
+        self.assertCountEqual(['b_only', 'in_both'], shadow.get_ports())
 
     def test_shadow_with_multiple_children(self):
         shadow = ShadowPortArray([self.array_a, self.array_b])
-        self.assertItemsEqual(['a_only', 'also_a_only', 'b_only', 'in_both'], shadow.get_ports())
+        self.assertCountEqual(['a_only', 'also_a_only', 'b_only', 'in_both'], shadow.get_ports())
 
     def test_connecting_ports_via_shadow(self):
         shadow = ShadowPortArray([self.array_a, self.array_b])
@@ -253,6 +253,6 @@ class ShadowPortArrayTest(TestCase):
 
     def test_shadow_does_not_inherit_ignored_ports(self):
         shadow = ShadowPortArray([self.array_a, self.array_b], ignore_ports=['in_both', 'also_a_only', 'fluff'])
-        self.assertItemsEqual(['a_only', 'b_only'], shadow.get_ports())
+        self.assertCountEqual(['a_only', 'b_only'], shadow.get_ports())
 
     # TODO: Test ShadowPortArray of ShadowPortArray (e.g. when we have nested domains

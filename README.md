@@ -502,9 +502,9 @@ called. For example:
 # example taken from tests/example/domains/coffee_orders/test_orders_service.py
 
 self.assert_ports_called(calls=[
-    GasofoTestCase.PortCalled(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
-    GasofoTestCase.PortCalled(port='is_valid_menu_item', kwargs={'item_name': 'Flat White'}),
-    GasofoTestCase.PortCalled(port='db_add_order_item', kwargs={
+    PortCall(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
+    PortCall(port='is_valid_menu_item', kwargs={'item_name': 'Flat White'}),
+    PortCall(port='db_add_order_item', kwargs={
         'room': 'Le trou des chouettes',
         'item': 'Flat White',
         'recipient': 'Shawn',

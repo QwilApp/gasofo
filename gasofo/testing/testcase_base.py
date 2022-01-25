@@ -1,10 +1,18 @@
+from typing import (
+    Any,
+    NamedTuple,
+)
 from unittest import TestCase
 
-import mock
+from unittest import mock
 
 from gasofo.testing.adapters import attach_mock_provider
-from collections import namedtuple
 from contextlib import contextmanager
+
+
+class PortCall(NamedTuple):
+    port: str
+    kwargs: dict
 
 
 class GasofoTestCase(TestCase):
@@ -12,12 +20,12 @@ class GasofoTestCase(TestCase):
     SERVICE_CLASS = None
     UNSPECIFIED = object()  # sentry for unspecified values
 
-    PortCalled = namedtuple('PortCalled', 'port kwargs')
+    PortCalled = PortCall  # for backward compatibility
 
     def setUp(self):
         self.service = self.SERVICE_CLASS()
         self.parent_mock = mock.Mock()
-        self.last_rc = self.UNSPECIFIED
+        self.last_rc: Any = self.UNSPECIFIED
 
     def GIVEN(self, needs_port, returns=UNSPECIFIED, has_side_effect=UNSPECIFIED):
         # TODO: check if already patched
@@ -49,7 +57,7 @@ class GasofoTestCase(TestCase):
             if order_matters:
                 self.assertSequenceEqual(expected_output, self.last_rc)
             else:
-                self.assertItemsEqual(expected_output, self.last_rc)
+                self.assertCountEqual(expected_output, self.last_rc)
         else:
             self.assertEqual(expected_output, self.last_rc)
 

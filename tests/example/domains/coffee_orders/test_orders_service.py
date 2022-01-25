@@ -4,7 +4,7 @@ from example.shared.datatypes import (
     OrderSummary, OrderItem
 )
 from example.shared.exceptions import InvalidAction
-from gasofo.testing import GasofoTestCase
+from gasofo.testing import GasofoTestCase, PortCall
 
 
 class OrdersServiceOpenForOrdersTest(GasofoTestCase):
@@ -61,9 +61,9 @@ class OrdersServiceCloseOrdersTest(GasofoTestCase):
         self.THEN(expected_output=order_details)
 
         self.assert_ports_called(calls=[
-            GasofoTestCase.PortCalled(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
-            GasofoTestCase.PortCalled(port='db_close_order', kwargs={'room': 'Le trou des chouettes'}),
-            GasofoTestCase.PortCalled(port='archive_order', kwargs={'order_details': order_details}),
+            PortCall(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
+            PortCall(port='db_close_order', kwargs={'room': 'Le trou des chouettes'}),
+            PortCall(port='archive_order', kwargs={'order_details': order_details}),
         ])
 
     def test_raises_if_no_active_order(self):
@@ -96,9 +96,9 @@ class OrderServicesMakeOrderTest(GasofoTestCase):
         self.THEN(expected_output=OrderItem(item='Flat White', recipient='Shawn', order_ts=10))
 
         self.assert_ports_called(calls=[
-            GasofoTestCase.PortCalled(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
-            GasofoTestCase.PortCalled(port='is_valid_menu_item', kwargs={'item_name': 'Flat White'}),
-            GasofoTestCase.PortCalled(port='db_add_order_item', kwargs={
+            PortCall(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
+            PortCall(port='is_valid_menu_item', kwargs={'item_name': 'Flat White'}),
+            PortCall(port='db_add_order_item', kwargs={
                 'room': 'Le trou des chouettes',
                 'item': 'Flat White',
                 'recipient': 'Shawn',
@@ -120,8 +120,8 @@ class OrderServicesMakeOrderTest(GasofoTestCase):
             self.WHEN(port_called='make_order', requester='Shawn', room='Le trou des chouettes', order_item='Latte')
 
         self.assert_ports_called(calls=[
-            GasofoTestCase.PortCalled(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
-            GasofoTestCase.PortCalled(port='is_valid_menu_item', kwargs={'item_name': 'Latte'}),
+            PortCall(port='db_get_active_order', kwargs={'room': 'Le trou des chouettes'}),
+            PortCall(port='is_valid_menu_item', kwargs={'item_name': 'Latte'}),
         ])
 
 

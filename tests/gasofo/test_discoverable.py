@@ -80,7 +80,7 @@ class AutoDiscoverAndWiringTest(TestCase):
         self.assertEqual(['b1', 'c1', 'x', 'y'], discovered.get_needs())
         self.assertEqual(['a1', 'b1', 'b2', 'c1'], discovered.get_provides())
         self.assertEqual(['x', 'y'], discovered.unsatisfied_needs())
-        self.assertItemsEqual([
+        self.assertCountEqual([
             DiscoveredConnection(port_name='b1', consumer=A, provider=B),
             DiscoveredConnection(port_name='c1', consumer=B, provider=C)
         ], discovered.connections())
@@ -104,7 +104,7 @@ class AutoDiscoverAndWiringTest(TestCase):
         self.assertEqual(['b1', 'c1', 'x', 'y'], discovered.get_needs())
         self.assertEqual(['a1', 'b1', 'b2', 'c1'], discovered.get_provides())
         self.assertEqual(['x', 'y'], discovered.unsatisfied_needs())
-        self.assertItemsEqual([
+        self.assertCountEqual([
             DiscoveredConnection(port_name='b1', consumer=a, provider=b),
             DiscoveredConnection(port_name='c1', consumer=b, provider=c)
         ], discovered.connections())
@@ -166,7 +166,7 @@ class AutoDiscoverAndWiringTest(TestCase):
 
 class INeedTest(TestCase):
 
-    class FakeProvider(object):
+    class FakeProvider:
         def get_provider_func(self, port_name):
             return lambda: port_name.upper()
 

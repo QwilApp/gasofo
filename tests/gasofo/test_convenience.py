@@ -55,7 +55,7 @@ class FuncAsProviderTest(TestCase):
 
     def test_connecting_service_to_a_classmethod_converted_to_a_provider(self):
 
-        class Deppy(object):
+        class Deppy:
             @classmethod
             def wowza(cls):
                 return cls.__name__
@@ -72,7 +72,7 @@ class FuncAsProviderTest(TestCase):
 
     def test_connecting_service_to_a_staticmethod_converted_to_a_provider(self):
 
-        class Deppy(object):
+        class Deppy:
             @staticmethod
             def wowza():
                 return 'Kapow'
@@ -89,7 +89,7 @@ class FuncAsProviderTest(TestCase):
 
     def test_connecting_service_to_a_bound_method_converted_to_a_provider(self):
 
-        class Deppy(object):
+        class Deppy:
             def wowza(self):
                 return 'Kapow'
 
@@ -122,7 +122,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_connecting_service_to_an_obj_converted_to_a_provider(self):
 
-        class Regurgitator(object):
+        class Regurgitator:
             def __init__(self, value):
                 self.value = value
 
@@ -142,7 +142,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_connecting_service_to_class_with_classmethod_converted_to_a_provider(self):
 
-        class Deppy(object):
+        class Deppy:
             @classmethod
             def external_dep(cls):
                 return cls.__name__
@@ -159,7 +159,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_connecting_service_to_class_with_staticmethod_converted_to_a_provider(self):
 
-        class Deppy(object):
+        class Deppy:
             @staticmethod
             def external_dep():
                 return 'Sassy'
@@ -176,7 +176,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_object_wrappers_support_flag_queries_but_has_no_flags(self):
 
-        class Dumpty(object):
+        class Dumpty:
             @staticmethod
             def blah():
                 return 'Sassy'
@@ -191,7 +191,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_creating_wrapper_with_invalid_port_name(self):
 
-        class Dumpty(object):
+        class Dumpty:
             @staticmethod
             def add_port():
                 return 'Sassy'
@@ -202,7 +202,7 @@ class ObjectAsProviderTest(TestCase):
 
     def test_misc_edge_cases(self):
 
-        class Dumpty(object):
+        class Dumpty:
             some_value = 100
 
             @staticmethod

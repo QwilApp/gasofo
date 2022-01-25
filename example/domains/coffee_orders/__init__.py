@@ -4,7 +4,6 @@ from example.domains.coffee_orders.orders_service import Orders
 from gasofo import Domain
 
 
-__author__ = 'shawn'
 __all__ = ['CoffeeOrderDomain']
 
 

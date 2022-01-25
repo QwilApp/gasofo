@@ -1,8 +1,13 @@
 import inspect
-import re
-import textwrap
-from shlex import shlex
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    TypeVar,
+)
 
+from gasofo.dep_parser import parse_deps_used
 from gasofo.discoverable import (
     INeed,
     IProvide,
@@ -21,8 +26,6 @@ from gasofo.service_needs import (
     Needs,
 )
 
-__author__ = 'shawn'
-
 
 def provides(method):
     """Decorator which tags class methods so they can be detected as a provider of a Service."""
@@ -30,7 +33,7 @@ def provides(method):
     return method
 
 
-def provides_with(name=None, **kwargs):
+def provides_with(name: str = None, **kwargs):
     """ Decorator which tags class methods so they can be detected as a provider of a Service.
 
         Use this instead of @provides when exposing a port with a custom name or to tag on additional flags.
@@ -49,47 +52,47 @@ def provides_with(name=None, **kwargs):
     return decorator
 
 
-class ProviderMetadata(object):
+# Provider Meta could reference providers by provider class, instance, or by name depending on  where it is used.
+REF_TYPE = TypeVar('REF_TYPE')
+
+
+class ProviderMetadata(Generic[REF_TYPE]):
     def __init__(self):
-        self._providers = {}
-        self._flags = {}
+        self._providers: Dict[str, REF_TYPE] = {}
+        self._flags: Dict[str, Any] = {}
 
-    def get_provides(self):
-        return self._providers.keys()
+    def get_provides(self) -> List[str]:
+        return list(self._providers.keys())
 
-    def get_provider_flag(self, port_name, flag_name):
+    def get_provider_flag(self, port_name: str, flag_name: str) -> Any:
         try:
             return self._flags[port_name].get(flag_name, None)
         except KeyError:
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
 
-    def get_provider_flags(self, port_name):
+    def get_provider_flags(self, port_name: str) -> dict:
         try:
             return self._flags[port_name].copy()
         except KeyError:
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
 
-    def register_provider(self, port_name, provider_ref, flags):
+    def get_provider(self, port_name) -> REF_TYPE:
+        try:
+            return self._providers[port_name]
+        except KeyError:
+            raise UnknownPort('"{}" is not a valid port'.format(port_name))
+
+    def register_provider(self, port_name: str, provider: REF_TYPE, flags: dict):
         if port_name in self._providers:
             raise DuplicateProviders('Duplicate providers for "{}"'.format(port_name))
 
-        self._providers[port_name] = provider_ref
+        self._providers[port_name] = provider
         self._flags[port_name] = flags or {}
 
 
-class ServiceProviderMetadata(ProviderMetadata):
-    """ Metadata for providers stored on Service class.
-
-        Provider funcs are referenced only by method names since actual bound method does not exist yet.
-    """
-    def register_provider(self, port_name, method_name, flags):
-        super(ServiceProviderMetadata, self).register_provider(
-            port_name=port_name,
-            provider_ref=method_name,
-            flags=flags,
-        )
-
-    def get_provider_method_name(self, port_name):
+class ServiceProviderMetadata(ProviderMetadata[str]):
+    """ meta that references provider by name """
+    def get_provider_method_name(self, port_name: str) -> str:
         try:
             return self._providers[port_name]
         except KeyError:
@@ -107,12 +110,12 @@ class ServiceMetaclass(type):
 
         # walk attributes and register the ones that have been tagged by @provides
         meta = ServiceProviderMetadata()
-        for attr_name, member in state.iteritems():
+        for attr_name, member in state.items():
             if hasattr(member, '__port_attributes__') and callable(member):  # tagged
 
                 port_name = member.__port_attributes__.get('with_name', attr_name)
                 PortArray.assert_valid_port_name(port_name)
-                meta.register_provider(port_name=port_name, method_name=attr_name, flags=member.__port_attributes__)
+                meta.register_provider(port_name=port_name, provider=attr_name, flags=member.__port_attributes__)
 
         mcs.validate_deps_declaration_and_usage(class_state=state, class_name=name)
 
@@ -120,7 +123,7 @@ class ServiceMetaclass(type):
         return type.__new__(mcs, name, bases, state)
 
     @classmethod
-    def validate_overridden_attributes(mcs, attrs, class_name):
+    def validate_overridden_attributes(mcs, attrs: dict, class_name: str):
         if 'meta' in attrs:
             raise ServiceDefinitionError('"meta" is a reserved attributes and should not be overridden')
 
@@ -131,12 +134,12 @@ class ServiceMetaclass(type):
             raise ServiceDefinitionError('To emphasize statelessness, {} should not define __init__'.format(class_name))
 
     @classmethod
-    def validate_deps_declaration_and_usage(mcs, class_state, class_name):
+    def validate_deps_declaration_and_usage(mcs, class_state: dict, class_name: str):
         deps = class_state.get('deps', None)
         needs_ports_defined = frozenset(deps.get_ports() if deps else ())
         all_deps_used = set()
 
-        for attr_name, member in class_state.iteritems():
+        for attr_name, member in class_state.items():
             if callable(member):
                 deps_used = parse_deps_used(member)
                 invalid_ports = deps_used.difference(needs_ports_defined).difference(RESERVED_PORT_NAMES)
@@ -153,21 +156,7 @@ class ServiceMetaclass(type):
             raise UnusedPort('{} has unused Needs - {}'.format(class_name, ', '.join(sorted(unused_needs))))
 
 
-def parse_deps_used(method):
-    # Start simple for now. Match using regex instead of walking parsed ast tree.
-    method_source = discard_comments_and_newlines(textwrap.dedent(inspect.getsource(method)))
-    deps_used = re.findall(r'self\.deps\.(.+?)[\(,]', method_source)
-    return frozenset(deps_used)
-
-
-def discard_comments_and_newlines(source):
-    lex = shlex(source, posix=True)
-    lex.whitespace = '\n'
-    return ''.join(lex)
-
-
-class Service(INeed, IProvide):
-    __metaclass__ = ServiceMetaclass
+class Service(INeed, IProvide, metaclass=ServiceMetaclass):
 
     deps = Needs([])  # override me in subclass to define service needs
 

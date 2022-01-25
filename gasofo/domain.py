@@ -1,6 +1,10 @@
 import inspect
 import re
 from functools import wraps
+from typing import (
+    Dict,
+    Type,
+)
 
 from gasofo.discoverable import (
     AutoDiscoverConnections,
@@ -24,52 +28,43 @@ from gasofo.service import (
     unknown_interface,
 )
 
-__author__ = 'shawn'
-
-GENERIC_ARGSPEC = inspect.getargspec(unknown_interface)
+GENERIC_ARGSPEC = inspect.getfullargspec(unknown_interface)
 
 
-class DomainProviderMetadata(ProviderMetadata):
+class DomainProviderMetadata(ProviderMetadata[Type[IProvide]]):
+    """ meta that references provider classes """
 
-    def __init__(self):
-        super(DomainProviderMetadata, self).__init__()
-        self.ports = None  # only set for instance metadata
-
-    def register_provider(self, port_name, service, flags):
-        super(DomainProviderMetadata, self).register_provider(
-            port_name=port_name,
-            provider_ref=service,
-            flags=flags,
-        )
-
-    def get_provider_method_name(self, port_name):
+    def get_provider_method_name(self, port_name: str) -> str:
         if port_name not in self.get_provides():
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
         else:
             return port_name
 
-    def get_provider(self, port_name):
-        try:
-            return self._providers[port_name]
-        except KeyError:
-            raise UnknownPort('"{}" is not a valid port'.format(port_name))
 
-    def get_instance_metadata(self, service_map):
-        clone = self.__class__()
-        clone.ports = PortArray()
+class DomainInstanceProviderMetadata(ProviderMetadata[IProvide]):
+    """ meta that references provider instances """
 
-        for port in self.get_provides():
-            provider_class = self.get_provider(port)
+    def __init__(self,  meta: DomainProviderMetadata, service_map: Dict[Type[IProvide], IProvide]):
+        super(DomainInstanceProviderMetadata, self).__init__()
+        self.ports = PortArray()
+        
+        for port in meta.get_provides():
+            provider_class = meta.get_provider(port)
             provider_instance = service_map[provider_class]
             provider_flags = provider_instance.get_provider_flags(port_name=port)
 
             provider_func = provider_instance.get_provider_func(port_name=port)
-            clone.register_provider(port_name=port, service=provider_instance, flags=provider_flags)
+            self.register_provider(port_name=port, provider=provider_instance, flags=provider_flags)
 
             # create and connect ports
-            clone.ports.add_port(port_name=port)
-            clone.ports.connect_port(port_name=port, func=provider_func)
-        return clone
+            self.ports.add_port(port_name=port)
+            self.ports.connect_port(port_name=port, func=provider_func)
+
+    def get_provider_method_name(self, port_name: str) -> str:
+        if port_name not in self.get_provides():
+            raise UnknownPort('"{}" is not a valid port'.format(port_name))
+        else:
+            return port_name
 
 
 def generate_domain_method(port_name, provider):
@@ -89,7 +84,7 @@ def generate_domain_method(port_name, provider):
     return generated
 
 
-class AutoProvide(object):
+class AutoProvide:
 
     def __init__(self, pattern=None):
         self.matcher = re.compile(pattern) if pattern else None
@@ -168,7 +163,7 @@ class DomainMetaclass(type):
 
             inherited_flags = provider.get_provider_flags(port)
             inherited_flags.pop('with_name', None)  # don't inherit name-change flags
-            meta.register_provider(port_name=port, service=provider, flags=inherited_flags)
+            meta.register_provider(port_name=port, provider=provider, flags=inherited_flags)
             state[port] = generate_domain_method(port_name=port, provider=provider)
 
         return type.__new__(mcs, name, bases, state)
@@ -212,30 +207,29 @@ class DomainMetaclass(type):
 
         for provider in providers:
             func_map[provider] = func = get_template_funcs(provider)[port_name]
-            spec_map[provider] = inspect.getargspec(func)
+            spec_map[provider] = inspect.getfullargspec(func)
 
-        non_generic_specs = {provider: spec for provider, spec in spec_map.iteritems() if spec != GENERIC_ARGSPEC}
+        non_generic_specs = {provider: spec for provider, spec in spec_map.items() if spec != GENERIC_ARGSPEC}
 
         if not non_generic_specs:  # all needs of this port did not specific an interface
-            return func_map.itervalues().next()  # just return the first one
+            return next(iter(func_map.values()))  # just return the first one
 
-        specs = non_generic_specs.values()
+        specs = list(non_generic_specs.values())
         if not all(spec == specs[0] for spec in specs):  # we have a mixture of specs
             msg = 'The following components all need "{}" but expect different interfaces - {}'.format(
                 port_name,
-                ', '.join(sorted(p.__name__ for p in non_generic_specs.iterkeys()))
+                ', '.join(sorted(p.__name__ for p in non_generic_specs.keys()))
             )
             raise InconsistentInterface(msg)
         else:
-            chosen_one = non_generic_specs.iterkeys().next()
+            chosen_one = next(iter(non_generic_specs))
             return func_map[chosen_one]
 
 
-class Domain(INeed, IProvide):
+class Domain(INeed, IProvide, metaclass=DomainMetaclass):
     """
         @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
     """
-    __metaclass__ = DomainMetaclass
     __services__ = ()  # must be overridden in subclass to define list of services within this domain
     __provides__ = ()  # must be overridden to expose ports that this domain provides
 
@@ -244,10 +238,10 @@ class Domain(INeed, IProvide):
         self._service_map = service_map = self._instantiate_and_map_services()
 
         # replace 'meta' with a variant for the instance (don't share self.__class__.meta)
-        self.meta = self.__class__.meta.get_instance_metadata(service_map=service_map)
+        self.meta = DomainInstanceProviderMetadata(meta=self.__class__.meta, service_map=service_map)
 
         # replace 'deps' with a ShadowPortArray which serves as proxy to the deps of internal services
-        components = service_map.values()
+        components = list(service_map.values())
         component_deps = [c.deps for c in components if isinstance(getattr(c, 'deps', None), (PortArray, ShadowPortArray))]
         discovered = AutoDiscoverConnections(components=components)
         self.deps = ShadowPortArray(arrays=component_deps, ignore_ports=discovered.satisfied_needs())

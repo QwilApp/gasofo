@@ -9,7 +9,7 @@ packages = setuptools.find_packages(include=["gasofo*"])
 
 setuptools.setup(
     name="gasofo",
-    version="1.0.3.1",
+    version="2.0.0a1",
     author="Shawn Chin",
     author_email="shawn@qwil.io",
     description="Qwil's hexagonal architecture framework",
@@ -19,7 +19,7 @@ setuptools.setup(
     packages=packages,
     install_requires=[],
     classifiers=[
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],

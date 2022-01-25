@@ -8,37 +8,28 @@ from gasofo import (
     provides,
 )
 
-__author__ = 'shawn'
-
 
 class OrdersNeeds(NeedsInterface):
 
-    def db_get_active_order(self, room):
-        # type: (str) -> Optional[OrderSummary]
+    def db_get_active_order(self, room: str) -> Optional[OrderSummary]:
         """Returns summary of active order if exists, None otherwise."""
 
-    def db_create_order(self, room, buyer):
-        # type: (str, str) -> OrderSummary
+    def db_create_order(self, room: str, buyer: str) -> OrderSummary:
         """Creates a new order."""
 
-    def db_close_order(self, room):
-        # type: (str) -> OrderDetails
+    def db_close_order(self, room: str) -> OrderDetails:
         """Closes an order for the room and returns the details."""
 
-    def db_get_order_details(self, room):
-        # type: (str) -> OrderDetails
+    def db_get_order_details(self, room: str) -> OrderDetails:
         """Returns details of open orders for the given room."""
 
-    def db_add_order_item(self, room, item, recipient):
-        # type: (str, str, str) -> OrderItem
+    def db_add_order_item(self, room: str, item: str, recipient: str) -> OrderItem:
         """Adds an item to open order of room."""
 
-    def archive_order(self, order_details):
-        # type: (OrderDetails) -> OrderDetails
+    def archive_order(self, order_details: OrderDetails) -> OrderDetails:
         """Archives a closed order."""
 
-    def is_valid_menu_item(self, item_name):
-        # type: (str) -> bool
+    def is_valid_menu_item(self, item_name: str) -> bool:
         """Checks if the given item is on the menu."""
 
 
@@ -47,8 +38,7 @@ class Orders(Service):
     deps = OrdersNeeds()
 
     @provides
-    def open_for_orders(self, requester, room):
-        # type: (str, str) -> OrderSummary
+    def open_for_orders(self, requester: str, room: str) -> OrderSummary:
         """Creates an offer to buy coffer by requester in given room.
 
         Args:
@@ -70,8 +60,7 @@ class Orders(Service):
         return self.deps.db_create_order(room=room, buyer=requester)
 
     @provides
-    def close_orders(self, requester, room):
-        # type: (str, str) -> OrderDetails
+    def close_orders(self, requester: str, room: str) -> OrderDetails:
         """Closes an open order.
 
         Args:
@@ -96,8 +85,7 @@ class Orders(Service):
         return order_details
 
     @provides
-    def make_order(self, requester, room, order_item):
-        # type: (str, str, str) -> OrderItem
+    def make_order(self, requester: str, room: str, order_item: str) -> OrderItem:
         """Adds an item to the existing order.
 
         Args:
@@ -125,8 +113,7 @@ class Orders(Service):
         return order_item
 
     @provides
-    def show_orders(self, room):
-        # type: (str) -> OrderDetails
+    def show_orders(self, room: str) -> OrderDetails:
         """Returns details of existing open offer.
 
         Args:

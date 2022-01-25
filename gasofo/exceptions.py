@@ -56,3 +56,7 @@ class IncompatibleProvider(GasofoError):
 
 class InconsistentInterface(GasofoError):
     """Raised when ports in question have inconsistent interfaces."""
+
+
+class NotSupportedError(GasofoError):
+    """Raised when a specific use case is not yet supported."""

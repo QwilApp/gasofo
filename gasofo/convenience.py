@@ -1,3 +1,8 @@
+from typing import (
+    Callable,
+    List,
+)
+
 from gasofo.discoverable import IProvide
 from gasofo.ports import PortArray
 from gasofo.exceptions import (
@@ -14,7 +19,7 @@ def func_as_provider(func, port):
     return AdHocFuncProvider(provider=func, port_name=port)
 
 
-class _FlagQueryMixin(object):
+class _FlagQueryMixin:
     def __init__(self, valid_ports):
         self._ports = valid_ports
 
@@ -34,16 +39,16 @@ class _FlagQueryMixin(object):
 class AdHocFuncProvider(_FlagQueryMixin, IProvide):
     """Wraps a single callable so it can be published as a provider with a specific port name."""
 
-    def __init__(self, provider, port_name):
+    def __init__(self, provider: Callable, port_name: str):
         PortArray.assert_valid_port_name(port_name)
         self.provider = provider
         self.port_name = port_name
         _FlagQueryMixin.__init__(self, valid_ports=[port_name])
 
-    def get_provides(self):
+    def get_provides(self) -> List[str]:
         return [self.port_name]
 
-    def get_provider_func(self, port_name):
+    def get_provider_func(self, port_name: str) -> Callable:
         if port_name != self.port_name:
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
         else:
@@ -52,8 +57,8 @@ class AdHocFuncProvider(_FlagQueryMixin, IProvide):
 
 class AdHocObjectProvider(_FlagQueryMixin, IProvide):
     """Wraps an object so it can be published as a provider with some of its attributes exposed as ports."""
-    def __init__(self, provider, ports):
-        if isinstance(ports, basestring):
+    def __init__(self, provider: object, ports: List[str]):
+        if isinstance(ports, str):
             ports = [ports]
 
         self._assert_attr_exists_on_provider(provider, ports)
@@ -65,10 +70,10 @@ class AdHocObjectProvider(_FlagQueryMixin, IProvide):
         self.ports = frozenset(ports)
         _FlagQueryMixin.__init__(self, valid_ports=self.ports)
 
-    def get_provides(self):
+    def get_provides(self) -> List[str]:
         return sorted(self.ports)
 
-    def get_provider_func(self, port_name):
+    def get_provider_func(self, port_name: str) -> Callable:
         if port_name not in self.ports:
             raise UnknownPort('"{}" is not a valid port'.format(port_name))
         return getattr(self.provider, port_name)
