@@ -6,11 +6,10 @@ from gasofo.exceptions import (
     NeedsInterfaceDefinitionError,
 )
 from gasofo.ports import PortArray
-from future.utils import with_metaclass
 
 
 class Needs(PortArray):
-    """Used to defined the Needs ports of a Service.
+    """Used to define the Needs ports of a Service.
 
         @DynamicAttrs <-- let pycharm know to expect dynamically added attributes
     """
@@ -62,7 +61,7 @@ class NeedsInterfaceMetaclass(type):
         return type.__new__(mcs, name, bases, state)
 
 
-class NeedsInterface(with_metaclass(NeedsInterfaceMetaclass, Needs)):
+class NeedsInterface(Needs, metaclass=NeedsInterfaceMetaclass):
     """Used to define Needs ports of a Service as an interface class."""
 
     def __init__(self):
