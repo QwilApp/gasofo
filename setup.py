@@ -9,7 +9,7 @@ packages = setuptools.find_packages(include=["gasofo*"])
 
 setuptools.setup(
     name="gasofo",
-    version="2.0.0-alpha2",
+    version="2.0.0",
     author="Shawn Chin",
     author_email="shawn@qwil.io",
     description="Qwil's hexagonal architecture framework",
